@@ -1,7 +1,7 @@
 """The brain: photos (or video frames) + room -> hazards in the shared/contract.json format.
 
-detect objects (fine-tuned YOLO or Grounding DINO) + scene regions (floor, wall, door, window, glass door,
-coats; Grounding DINO) -> SAM 2 outlines -> check the problem (LRV contrast, darkness, glare, pattern,
+detect objects (fine-tuned YOLO or Grounding DINO) + scene regions (floor, wall, door, window, glass door;
+Grounding DINO) -> SAM 2 outlines -> check the problem (LRV contrast, darkness, glare, pattern,
 position) -> hazard codes -> merge repeats across frames -> frames, outline PNGs, result.json.
 
 Contrast rules use light reflectance value (LRV ~ 100 x relative luminance of linearised sRGB) with the
@@ -50,7 +50,7 @@ DARK_WINDOW_LRV = 6       # window this dark while the room is lit = black glass
 LIT_ROOM_LRV = 20
 
 # Scene regions found with Grounding DINO text prompts (no training needed). Each special prompt runs
-# alone with its own threshold: in a shared prompt "glass door" and "coat" leak onto every door and garment.
+# alone with its own threshold: in a shared prompt "glass door" leaks onto every door.
 SCENE = {
     "floor": ["floor"],
     "wall": ["wall"],
@@ -59,7 +59,6 @@ SCENE = {
 }
 SPECIAL = {
     "glass_door": ("glass shower door . sliding glass door . glass door .", 0.45),
-    "coat": ("coat hanging on a hook . dressing gown hanging on a door . coat rack .", 0.40),
 }
 MIN_WINDOW_SHARE = 0.03   # window must cover at least 3% of the frame
 
@@ -114,7 +113,7 @@ class Analyzer:
         return dets
 
     def scene(self, im):
-        """[(region, box, score)] for floor/wall/door/window/glass door/coat."""
+        """[(region, box, score)] for floor/wall/door/window/glass door."""
         prompt = " . ".join(p for ps in SCENE.values() for p in ps) + " ."
         r = self._gd(im, prompt, threshold=0.30)
         out = []
@@ -312,8 +311,6 @@ def analyze_frame(an, im, room):
             continue  # already reported as a glass door
         if label == "glass_door":
             add("glass_door", "medium", score, box, mask, label, {})
-        elif label == "coat":
-            add("person_lookalike", "low", score, box, mask, label, {})
         elif label == "door":
             around = ring(mask) & wall if wall is not None and (ring(mask) & wall).sum() > 200 else None
             d, _ = lrv_contrast(lrv, mask, around)
@@ -352,8 +349,12 @@ def analyze_frame(an, im, room):
     return found
 
 
+MAX_PER_OBJECT = 2  # cards per (hazard type, object) in one job: the caregiver needs one clear example, not 10
+
+
 def merge(per_frame):
-    """Same hazard seen in several frames of one video -> keep the clearest, most confident shot."""
+    """Same hazard seen in several frames of one video -> keep the clearest, most confident shot,
+    then cap repeats of the same hazard on the same kind of object."""
     allh = [dict(h, frame=k) for k, hs in enumerate(per_frame) for h in hs]
     allh.sort(key=lambda h: (-SEV_RANK[h["severity"]], -h["confidence"]))
     kept = []
@@ -363,7 +364,13 @@ def merge(per_frame):
                   for k in kept)
         if not dup:
             kept.append(h)
-    return kept
+    count, capped = {}, []
+    for h in kept:
+        k = (h["type"], h["object"])
+        count[k] = count.get(k, 0) + 1
+        if count[k] <= MAX_PER_OBJECT:
+            capped.append(h)
+    return capped
 
 
 def outline_png(mask, color, path):
