@@ -7,6 +7,7 @@ import { SeverityPill } from "@/components/HazardCard";
 import type { SitePhoto } from "@/components/landing/ModelStrip";
 import PhotoCredits from "@/components/PhotoCredits";
 import RoomTour from "@/components/room-tour/RoomTour";
+import IsoHome from "@/components/v5/IsoHome";
 import { CheckForm, Isolated } from "@/components/v4/Sections";
 import Workflow, { type Flow } from "@/components/v5/Workflow";
 import type { HazardType } from "@/lib/contract";
@@ -102,6 +103,7 @@ export default function V5Page() {
             <span className="max-[340px]:sr-only">SafeSight</span>
           </Link>
           <ul className="m-0 hidden list-none items-center gap-7 p-0 text-[15px] md:flex">
+            <li><a href="#home" className="hover:opacity-70">The home</a></li>
             <li><a href="#fixes" className="hover:opacity-70">What you get</a></li>
             <li><a href="#stores" className="hover:opacity-70">Where to buy</a></li>
             <li><a href="#rooms" className="hover:opacity-70">What we look for</a></li>
@@ -114,7 +116,31 @@ export default function V5Page() {
         </nav>
       </header>
 
-      {/* 2. What you get: the fix list for the room above. */}
+      {/* 2. The whole home, drawn: every kind of thing we look for, room by room. */}
+      <section id="home" className="relative overflow-hidden bg-[var(--ss-sheet)]">
+        <div className="mx-auto max-w-[1200px] px-5 pt-20 sm:px-10 sm:pt-28">
+          <h2 className="m-0 max-w-[720px] font-v5 text-[clamp(38px,5.2vw,68px)] leading-[1.04] font-medium tracking-[-0.03em]">
+            Dementia-friendly homes, checked room by room
+          </h2>
+          <p className="m-0 mt-6 max-w-[460px] text-[17px] leading-relaxed text-[var(--ss-ink-2)]">
+            Film a room on your phone. SafeSight finds what may confuse or trip someone living with dementia, and the cheapest way to fix it.
+          </p>
+          <a
+            href="#check"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-[var(--ss-accent)] px-6 py-3.5 text-[15px] font-medium text-white hover:brightness-110"
+          >
+            Check a room <span aria-hidden="true">→</span>
+          </a>
+        </div>
+        {/* On phones the drawing stays large enough to read, cropped at the sides. */}
+        <div className="mx-auto -mt-4 flex max-w-[1300px] justify-center overflow-hidden px-2 sm:-mt-24 lg:-mt-40 lg:block lg:pl-[22%]">
+          <div className="w-[720px] shrink-0 sm:w-full">
+            <IsoHome />
+          </div>
+        </div>
+      </section>
+
+      {/* 3. What you get: the fix list for the room above. */}
       {room && (
         <section id="fixes" className="scroll-mt-20 bg-[var(--ss-sheet)]">
           <div className="mx-auto max-w-[1200px] px-5 py-20 sm:px-10 sm:py-28">
@@ -178,7 +204,7 @@ export default function V5Page() {
         </section>
       )}
 
-      {/* 3. Where to buy it: everyday stores, drifting past. */}
+      {/* 4. Where to buy it: everyday stores, drifting past. */}
       <section id="stores" className="scroll-mt-20 bg-[var(--ss-sheet)]">
         <div className="mx-auto max-w-[1200px] px-5 pb-20 sm:px-10 sm:pb-28">
           <Eyebrow>Where to buy</Eyebrow>
@@ -197,7 +223,7 @@ export default function V5Page() {
         </div>
       </section>
 
-      {/* 4. What we look for, one thing at a time. */}
+      {/* 5. What we look for, one thing at a time. */}
       <section id="rooms" className="scroll-mt-20 bg-[var(--ss-soft)]">
         <div className="mx-auto max-w-[1200px] px-5 py-20 sm:px-10 sm:py-28">
           <Eyebrow>What we look for</Eyebrow>
@@ -211,7 +237,7 @@ export default function V5Page() {
         </div>
       </section>
 
-      {/* 5. How it works, in four plain steps. */}
+      {/* 6. How it works, in four plain steps. */}
       <section id="how" className="scroll-mt-20 bg-[var(--ss-sheet)]">
         <div className="mx-auto max-w-[1200px] px-5 py-20 sm:px-10 sm:py-28">
           <Eyebrow>How it works</Eyebrow>
@@ -228,7 +254,7 @@ export default function V5Page() {
         </div>
       </section>
 
-      {/* 6. Privacy, in four short points. */}
+      {/* 7. Privacy, in four short points. */}
       <section id="privacy" className="scroll-mt-20 bg-[var(--ss-ink)] text-white">
         <div className="mx-auto max-w-[1200px] px-5 py-20 sm:px-10 sm:py-24">
           <Eyebrow dark>Your privacy</Eyebrow>
@@ -244,7 +270,7 @@ export default function V5Page() {
         </div>
       </section>
 
-      {/* 7. Check a room, right here. */}
+      {/* 8. Check a room, right here. */}
       <section id="check" className="scroll-mt-20 bg-[var(--ss-soft)]">
         <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-20 sm:px-10 sm:py-28 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           <div>
