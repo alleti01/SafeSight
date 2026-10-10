@@ -1,0 +1,91 @@
+{
+  "_note": "FROZEN Oct 10 2026. Baseline Grounding DINO prompts for the before/after comparison. Do not edit; same phrases were used for pre-labeling.",
+  "labels": {
+    "rug": [
+      "rug",
+      "carpet",
+      "mat"
+    ],
+    "toilet": [
+      "toilet"
+    ],
+    "toilet_roll_holder": [
+      "toilet paper"
+    ],
+    "towel": [
+      "towel"
+    ],
+    "mirror": [
+      "mirror"
+    ],
+    "stairs": [
+      "staircase",
+      "stairs"
+    ],
+    "cable": [
+      "power cord",
+      "cable"
+    ],
+    "floor_clutter": [
+      "clothes on floor",
+      "shoes",
+      "bag",
+      "box",
+      "toy"
+    ],
+    "bin": [
+      "trash can"
+    ],
+    "bed": [
+      "bed"
+    ],
+    "sofa": [
+      "sofa",
+      "couch"
+    ],
+    "chair": [
+      "chair"
+    ],
+    "table": [
+      "table",
+      "desk"
+    ],
+    "door": [
+      "door"
+    ],
+    "window": [
+      "window"
+    ],
+    "glass_door": [
+      "glass door",
+      "shower screen"
+    ]
+  },
+  "groups": [
+    [
+      "rug",
+      "toilet",
+      "toilet_roll_holder",
+      "towel",
+      "mirror"
+    ],
+    [
+      "stairs",
+      "cable",
+      "floor_clutter",
+      "bin"
+    ],
+    [
+      "bed",
+      "sofa",
+      "chair",
+      "table"
+    ],
+    [
+      "door",
+      "window",
+      "glass_door"
+    ]
+  ],
+  "eval_threshold": 0.15
+}
