@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest";
+import type { HazardType } from "./contract";
+import { duration, FIX_PLANS, HANDYMAN_RATE, labor, materials, money, planTotals, shopLinks } from "./costs";
+
+const ALL: HazardType[] = [
+  "dark_rug", "loose_rug", "shiny_floor", "patterned_floor", "bathroom_fitting_blends_in",
+  "furniture_blends_in", "mirror", "stair_edge_hard_to_see", "floor_clutter", "toilet_lookalike",
+];
+
+describe("fix plans", () => {
+  it("cover every hazard type with sane numbers", () => {
+    for (const type of ALL) {
+      const plan = FIX_PLANS[type];
+      expect(plan.fix.length).toBeGreaterThan(5);
+      for (const item of plan.items) {
+        expect(item.low).toBeGreaterThan(0);
+        expect(item.high).toBeGreaterThanOrEqual(item.low);
+        expect(item.shop).toBeTruthy();
+      }
+      expect(plan.diyMinutes[1]).toBeGreaterThanOrEqual(plan.diyMinutes[0]);
+    }
+  });
+
+  it("price a dark rug as rug plus grippers", () => {
+    expect(materials(FIX_PLANS.dark_rug)).toEqual([45, 59]);
+    expect(labor(FIX_PLANS.dark_rug)).toEqual([0, 0]);
+  });
+
+  it("charge handyman hours at the low and high rate", () => {
+    expect(labor(FIX_PLANS.stair_edge_hard_to_see)).toEqual([1 * HANDYMAN_RATE[0], 2 * HANDYMAN_RATE[1]]);
+  });
+});
+
+describe("plan totals", () => {
+  it("add up materials, labor and free steps across hazards", () => {
+    const t = planTotals(["dark_rug", "bathroom_fitting_blends_in", "mirror"]);
+    expect(t.diy).toEqual([45 + 18, 59 + 21]);
+    expect(t.hired).toEqual([45 + 18 + 30 + 30, 59 + 21 + 90 + 90]);
+    expect(t.freeSteps).toBe(3);
+    expect(t.minutes).toEqual([10 + 15 + 10, 20 + 30 + 20]);
+  });
+
+  it("count a repeated hazard twice", () => {
+    expect(planTotals(["furniture_blends_in", "furniture_blends_in"]).diy).toEqual([8, 20]);
+  });
+
+  it("is zero for nothing", () => {
+    expect(planTotals([])).toEqual({ diy: [0, 0], hired: [0, 0], minutes: [0, 0], freeSteps: 0 });
+  });
+});
+
+describe("formatting", () => {
+  it("shows money ranges and free items", () => {
+    expect(money([45, 59])).toBe("$45–$59");
+    expect(money([20, 20])).toBe("$20");
+    expect(money([0, 0])).toBe("$0");
+    expect(money([1200, 1500])).toBe("$1,200–$1,500");
+  });
+
+  it("shows minutes and hours", () => {
+    expect(duration([10, 20])).toBe("10–20 min");
+    expect(duration([45, 90])).toBe("45 min–1.5 hr");
+    expect(duration([60, 150])).toBe("1–2.5 hr");
+  });
+
+  it("builds cheapest-first shop links", () => {
+    const [walmart, amazon] = shopLinks("rug grippers");
+    expect(walmart.url).toBe("https://www.walmart.com/search?q=rug%20grippers&sort=price_low");
+    expect(amazon.url).toBe("https://www.amazon.com/s?k=rug%20grippers&s=price-asc-rank");
+  });
+});
