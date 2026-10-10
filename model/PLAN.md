@@ -5,18 +5,20 @@ Everything in `model/`. The app never sees object labels, only the 10 hazard cod
 ## Decisions (locked Fri Oct 9)
 
 - **Detector:** YOLO11-m, fine-tuned.
-- **Labels are objects, not hazards (14, frozen order):**
-  `rug, toilet, toilet_seat, toilet_roll_holder, towel, mirror, stair_edge, cable, floor_clutter, bin, bed, sofa, chair, table`
+- **Labels are objects, not hazards (13, frozen order, changed Oct 10):**
+  `rug, toilet, toilet_roll_holder, towel, mirror, stairs, cable, floor_clutter, bin, bed, sofa, chair, table`
+  (`stair_edge` became `stairs` because every dataset boxes the whole staircase; `toilet_seat` merged into
+  `toilet` because no dataset labels seats. Edge and seat contrast are checked inside the SAM 2 outline.)
 - **Rules turn objects into the 10 hazard codes** (SAM 2 outline + contrast with surroundings):
 
   | Object | Rule | Hazard code |
   |---|---|---|
   | rug | much darker than surrounding floor | `dark_rug` |
   | rug | otherwise (low severity) | `loose_rug` |
-  | toilet, toilet_seat, toilet_roll_holder, towel | low contrast with wall/floor next to it | `bathroom_fitting_blends_in` |
+  | toilet, toilet_roll_holder, towel | low contrast with wall/floor next to it | `bathroom_fitting_blends_in` |
   | bed, sofa, chair, table | low contrast with wall/floor next to it | `furniture_blends_in` |
   | mirror | always | `mirror` |
-  | stair_edge | low contrast along the edge | `stair_edge_hard_to_see` |
+  | stairs | low contrast along step edges | `stair_edge_hard_to_see` |
   | cable, floor_clutter | on the floor | `floor_clutter` |
   | bin | room is bathroom | `toilet_lookalike` |
   | floor (Grounding DINO + SAM 2, untrained) | glare | `shiny_floor` |
@@ -34,15 +36,32 @@ Everything in `model/`. The app never sees object labels, only the 10 hazard cod
 - Python 3.11 env in `model/.venv` (`requirements.txt`), Mac GPU (MPS) works
 - Roboflow key in `model/.env` (never committed)
 
-## Phase 1: Downloads (Fri night, Mac, $0)
+## Phase 1: Downloads (done Sat ~2 AM, Mac, $0)
 
-1. Save Roboflow key to `model/.env`
-2. Models: YOLO11-m, Grounding DINO base, SAM 2.1
-3. Open Images V7: toilet, mirror, bed, sofa, chair, table, towel, bin, rug (up to ~1,000 each)
-4. ADE20K (150-class version), indoor home scenes only
-5. Roboflow Universe: search for `stair_edge`, `cable`, `toilet_roll_holder`, `floor_clutter`, `toilet_seat`; approve list, then download
+- Models in `model/weights/`: `yolo11m.pt`, `grounding-dino-base/`, `sam2.1-hiera-large/`
+- Open Images V7 (`scripts/download_openimages.py`): 7,088 images, 19,148 boxes in `data/open-images/` (`images/`, `boxes.csv`). No rug class exists in Open Images.
+- ADE20K 150-class (`data/ade20k/ADEChallengeData2016/`): semantic masks, ~4,800 home-scene images (bedroom, living_room, bathroom, kitchen, dining_room, corridor, staircase, hallway...). Main source of rugs.
+- Roboflow Universe (`scripts/download_roboflow.py`, list in `data/roboflow/sources.json`): 12 datasets, YOLO format. Augmented copies stay in train only.
 
-Done when: everything is in `model/data/`, with an image count per source.
+### Source class -> our label (used in Phase 2)
+
+| Our label | Open Images | ADE20K (objectInfo150 name) | Roboflow |
+|---|---|---|---|
+| rug | (none) | rug, carpet, carpeting | asdasd carpet, ai-dataset Carpet, ethan carpet |
+| toilet | Toilet | toilet | sapiens Toilet, svalab12 wc, adrian wc |
+| toilet_roll_holder | Toilet paper | (none) | practicas Toilet-paper |
+| towel | Towel | towel | svalab12 towel, adrian towel |
+| mirror | Mirror | mirror | svalab12 mirror, adrian mirror |
+| stairs | Stairs | stairs/steps, stairway/staircase, step/stair | bcpmodel1commona, tom-lai, kaist stairs |
+| cable | (none) | (none) | bartu cables (drop overhead power lines) |
+| floor_clutter | (none) | (none) | hoarding-support: all classes except furniture |
+| bin | Waste container | ashcan, trash can | (none) |
+| bed | Bed, Sofa bed | bed | (none) |
+| sofa | Couch, Studio couch, Loveseat | sofa, couch; armchair | (none) |
+| chair | Chair | chair, swivel chair | (none) |
+| table | Table, Coffee table, Kitchen & dining room table | table, coffee table | (none) |
+
+Dropped: Roboflow sink, soap, Door-handle, the junk class names in adrian/asdasd; ADE20K classes not listed.
 
 ## Phase 2: Build the dataset (Sat 8-11 AM, Mac, $0)
 
