@@ -1,0 +1,14 @@
+# Python 3.11. Same list on the Mac (MPS) and the H100 (CUDA).
+torch
+torchvision
+transformers>=4.56   # Grounding DINO and SAM 2 both load from here
+accelerate
+ultralytics          # YOLO11 detector training
+opencv-python
+pillow
+numpy
+imagehash            # near-duplicate frame check
+matplotlib
+fastapi
+uvicorn
+python-multipart
