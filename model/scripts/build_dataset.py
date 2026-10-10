@@ -241,7 +241,7 @@ def main():
     for r in df.itertuples():
         (OUT / "_all" / "images" / f"{r.name}.jpg").rename(OUT / "images" / r.split / f"{r.name}.jpg")
         (OUT / "_all" / "labels" / f"{r.name}.txt").rename(OUT / "labels" / r.split / f"{r.name}.txt")
-    shutil.rmtree(OUT / "_all")
+    shutil.rmtree(OUT / "_all", ignore_errors=True)  # Finder may be writing .DS_Store into it
 
     yaml.safe_dump({"train": "images/train", "val": "images/val", "names": dict(enumerate(LABELS))},
                    open(OUT / "data.yaml", "w"), sort_keys=False)

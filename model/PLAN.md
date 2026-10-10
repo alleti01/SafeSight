@@ -69,6 +69,27 @@ Dropped: Roboflow sink, soap, Door-handle, the junk class names in adrian/asdasd
 - **Roboflow messy homes:** `sasya-0ullp/messy-room-y5qsc`, `sds-first-workspace/messy-imgs` (loose items -> floor_clutter, furniture keeps its label), `superfish-5k9sp/robot-vacuum-cleaner` (its wire class is not in any exported version, so only glasses/mouse/nail -> floor_clutter).
 - **Split fix:** Roboflow's own valid/test images go to val (floor_clutter val went 4 -> 352). The pasted-wire cable set is train only.
 - **Cables (no real dataset exists):** `scripts/pseudo_label_cables.py` runs untrained Grounding DINO ("power cord. electrical cable. extension cord. charging cable.") over 4,791 ADE20K home photos + 2,500 LVIS home photos with outlets/lamps/TVs/laptops (`data/lvis/cable_pool/`). Candidates in `data/cable_search/candidates.json`; every box is checked by eye and only approved ones go to `data/cable_search/approved.json`, which `build_dataset.py` merges into those photos. Rejected Grounding DINO mistakes are mostly wall outlets, plugs and furniture edges.
+  Result: 2,352 candidates reviewed on 24 sheets (decisions in `data/cable_search/review_decisions.txt`), 1,440 approved (61%), 180 overlapping duplicates merged -> **1,260 cable boxes in 962 real home photos** (231 ADE20K, 731 LVIS). Cords held by people, shower hoses, lamp poles and outlets alone were rejected.
+
+### Dataset after top-up (`data/yolo/counts.txt`)
+
+| Label | Train img | Val img |
+|---|---|---|
+| rug | 1,626 | 374 |
+| toilet | 4,937 | 304 |
+| toilet_roll_holder | 1,464 | 152 |
+| towel | 1,128 | 100 |
+| mirror | 2,447 | 232 |
+| stairs | 4,288 | 558 |
+| cable | 995 | 92 |
+| floor_clutter | 2,404 | 352 |
+| bin | 1,288 | 136 |
+| bed | 2,633 | 270 |
+| sofa | 2,538 | 303 |
+| chair | 2,662 | 307 |
+| table | 4,270 | 509 |
+
+23,167 train + 2,575 val images.
 
 ## Phase 2: Build the dataset + test set (Sat 8 AM-1 PM, Mac, $0)
 
