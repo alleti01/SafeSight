@@ -33,3 +33,9 @@ build/
 .env.*
 !.env.example
 .DS_Store
+
+# Backend job folders (processed frames from uploads)
+backend/jobs/
+
+# Stock photos fetched for local processing (the site loads them from Unsplash)
+backend/stock/

@@ -2,12 +2,15 @@
 
 Changes here only when both of you are on a call and agree. Add fields; never rename or remove one.
 
-## Endpoints (proposed, confirm on the 11:30 PM call)
+## Endpoints (app/ → backend/)
 
 | Request | Sends | Gets back |
 |---|---|---|
-| `POST /analyze` | multipart form: `room` (`bathroom` / `bedroom` / `hallway`) plus either several `photos` or one `video` | JSON in the shape of `contract.json` |
-| `POST /fix/{hazard_id}` | nothing else | `{ "hazard_id": "h1", "after_url": "/after/h1.jpg" }` |
+| `POST /analyze` | multipart form: `room` (`bathroom` / `bedroom` / `hallway`) plus either several `photos` or one `video` | `202` with a job: `{ "job_id", "status": "queued" }` (bad input is a `422` straight away) |
+| `GET /analyze/{job_id}` | nothing | `{ "job_id", "status": "queued" \| "working" \| "done" \| "failed", "step", "done", "total" }`, plus `result` (the shape of `contract.json`) when done or `detail` when failed |
+| `POST /fix` | JSON `{ "job_id": "abc123", "hazard_id": "h1" }` (hazard ids are only unique within a job) | `{ "hazard_id": "h1", "after_url": "/...", "placeholder": true }` |
+
+Errors come back as `{ "detail": "<message for the caregiver>" }`.
 
 All `*_url` paths are relative to the brain's base address, which the app reads from one setting.
 
@@ -19,4 +22,17 @@ All `*_url` paths are relative to the brain's base address, which the app reads 
 - `box`: `[left, top, right, bottom]` in pixels of the frame named by `frame_id`
 - `outline_url`: PNG mask/outline of the object, same size as the frame
 
-The brain only says which hazard it found. All caregiver-facing wording (name, reason, fix) lives in `app/`, keyed by `type`.
+## Model hand-off (proposed: model/ → backend/)
+
+Abhi's `model/` exposes one function the backend imports:
+
+```python
+detect(image: numpy.ndarray) -> list[dict]
+# [{"label": "rug", "box": [x0, y0, x1, y1], "score": 0.87}, ...]
+```
+
+Labels are the 10 object classes: `rug`, `patterned_floor`, `floor_glare`, `toilet`, `bathroom_fitting`, `furniture`, `mirror`, `stair_edge`, `floor_clutter`, `bin`. The backend turns objects into the hazard codes above. Swapping in newly trained weights must not change this signature.
+
+## Wording
+
+The backend only says which hazard it found. All caregiver-facing wording (name, reason, fix) lives in `app/`, keyed by `type`.

@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/* Colour isolation: the site is neutral; the only bright color is a hazard.
+   The one other color, a deep green, is for actions. */
+:root {
+  --background: #faf9f5;
+  --surface: #ffffff;
+  --foreground: #141413;
+  --muted: #6c6a64;
+  --line: #e6dfd8;
+  --linen: #f1ece4;
+  --night: #0f0e12;
+  --accent: #1f5f4a;
+  --accent-dark: #123b2e;
+  --danger: #c8372d;
+  --warn: #d98e04;
+  --warn-text: #8a5a00;
+  --calm: #2f6fb0;
+}
+
+:root {
+  /* SafeSight theme: "Earthy and Serene" (3E362E, 865D36, 93785B, AC8968,
+     A69080), with light tints for sheets and cards. Hazard colors stay as
+     they are so a hazard is still the only bright color on the page. */
+  --ss-page: #ac8968;
+  --ss-sheet: #f4ede4;
+  --ss-card: #fcf9f5;
+  --ss-ink: #3e362e;
+  --ss-ink-hover: #2b251f;
+  --ss-ink-2: #5e4f41;
+  --ss-ink-3: #7a6654;
+  --ss-faint: #b8a796;
+  --ss-accent: #865d36;
+  --ss-light: #c9ae90;
+  --ss-glow: #e6d3bd;
+  --ss-soft: #efe5d8;
+  --ss-chip: #ede4d8;
+  --ss-line: #e3d8ca;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-warn-text: var(--warn-text);
+  --color-calm: var(--calm);
+  --color-linen: var(--linen);
+  --color-night: var(--night);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+  --font-mono: var(--font-code);
+  --font-v2-display: var(--font-antonio), "Arial Narrow", sans-serif;
+  --font-v2-body: var(--font-inter), system-ui, sans-serif;
+  --font-v3: var(--font-lexend), system-ui, sans-serif;
+  --font-v4: var(--font-manrope), system-ui, sans-serif;
+  --font-v5: var(--font-geist), system-ui, sans-serif;
+  --font-v5-serif: var(--font-iserif), Georgia, serif;
+}
+
+html {
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* The first design (/v1) sets headings in Newsreader. In the base layer so a
+   font utility on a heading still wins. */
+@layer base {
+  .v1 h1,
+  .v1 h2 {
+    font-family: var(--font-heading), Georgia, serif;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+
+/* Paper: white page, keep the hazard colors, no site chrome. */
+@page {
+  margin: 14mm;
+}
+
+@media print {
+  body {
+    background: #ffffff;
+    font-size: 11pt;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* A row that slides left by half its width: drawn twice, it loops with no seam. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

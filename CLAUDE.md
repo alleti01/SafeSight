@@ -6,8 +6,10 @@ Submit on Devpost by Sun Oct 11, 2026, 9:00 PM EDT (hard deadline 11:59 PM EDT).
 
 ## Ownership (keeps main conflict-free)
 
-- `model/`: Person A. Frames from video, people blurring, labeling, fine-tuning, SAM 2 outlines, contrast checks, merging repeats, severity, "after" pictures, the analysis web service.
-- `app/`, `docs/`, `README.md`: Person B. Upload page, gallery, filters, before/after view, printable report, all caregiver-facing text, hosting, write-up, demo video.
+- `model/`: Person A (Abhi). Labeling, fine-tuning the detector, accuracy results, and a `detect(image)` function that returns object labels, boxes and scores.
+- `backend/`: Person B (Anish). The analysis web service: video to frames, people blurring, calling `detect`, SAM 2 outlines, contrast checks that turn objects into hazard codes, merging repeats, severity, "after" pictures, any database.
+- `app/`, `docs/`, `README.md`: Person B (Anish). Upload page, gallery, filters, before/after view, printable report, all caregiver-facing text, hosting.
+- `app/src/components/room-tour/`: Abhi, handed over Oct 10 2026. The moving room at the top of the home page. Anish doesn't edit it until Abhi's work is merged back; see its README.
 - `shared/`: changes only when both agree. Add fields; never rename or remove. See `shared/README.md`.
 
 Never edit files outside the current person's folders without asking.
