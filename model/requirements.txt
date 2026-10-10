@@ -12,3 +12,7 @@ matplotlib
 fastapi
 uvicorn
 python-multipart
+fiftyone             # downloads only the Open Images classes we need
+roboflow             # Roboflow Universe datasets
+python-dotenv        # reads ROBOFLOW_API_KEY from model/.env
+huggingface_hub
