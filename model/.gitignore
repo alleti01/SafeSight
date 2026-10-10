@@ -1,0 +1,21 @@
+# Never commit photos or video of real homes, or anything made from them
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.heic
+*.HEIC
+*.mp4
+*.mov
+*.MOV
+
+# Working folders (raw footage, frames, labels, training runs, test outputs)
+data/
+frames/
+runs/
+outputs/
+weights/
+
+# Environment and secrets
+.venv/
+.env
