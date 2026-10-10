@@ -1,0 +1,92 @@
+{
+ "adef": [
+  "bed",
+  "bin",
+  "chair",
+  "door",
+  "floor_clutter",
+  "glass_door",
+  "mirror",
+  "rug",
+  "sofa",
+  "stairs",
+  "table",
+  "toilet",
+  "toilet_roll_holder",
+  "towel",
+  "window"
+ ],
+ "adl": [
+  "door",
+  "towel",
+  "bin",
+  "bed",
+  "floor_clutter"
+ ],
+ "t10k": "ALL",
+ "robot": [
+  "bin",
+  "cable",
+  "floor_clutter",
+  "rug",
+  "sofa",
+  "bed",
+  "table",
+  "chair",
+  "toilet"
+ ],
+ "rf2-lgdata": [
+  "cable",
+  "floor_clutter"
+ ],
+ "rf2-clutter-dataset-labeled": [
+  "floor_clutter"
+ ],
+ "rf2-assistive-object-detection-2-d00fb": [
+  "floor_clutter"
+ ],
+ "rf2-roomba-claw-mod-polygon": [
+  "cable",
+  "floor_clutter"
+ ],
+ "rf2-sock-detection": [
+  "floor_clutter"
+ ],
+ "rf2-cables-p2yfn": [
+  "cable"
+ ],
+ "rf2-indoor-objects-1epjv": [
+  "bin",
+  "door"
+ ],
+ "rf2-project-iyibv": [
+  "bin"
+ ],
+ "rf2-glassdoor-3lply": "ALL",
+ "rf2-door-bhrek": [
+  "door"
+ ],
+ "rf2-door-open-closed-relabel": [
+  "door"
+ ],
+ "rf2-door-xwnuj": [
+  "door"
+ ],
+ "rf2-toilet-paper-wehrw": [
+  "toilet_roll_holder"
+ ],
+ "sun": [
+  "bed",
+  "bin",
+  "chair",
+  "door",
+  "floor_clutter",
+  "mirror",
+  "sofa",
+  "table",
+  "toilet",
+  "toilet_roll_holder",
+  "towel",
+  "window"
+ ]
+}

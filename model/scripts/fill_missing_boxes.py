@@ -59,18 +59,28 @@ def iou(a, b):
     return inter / ((a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter + 1e-9)
 
 
+EXT_COVERS = Path(__file__).resolve().parents[1] / "data" / "ext" / "covers.json"
+if EXT_COVERS.exists():
+    for k, v in json.load(open(EXT_COVERS)).items():
+        COVERED[k] = ALL if v == "ALL" else set(v)
+
+
 def main():
     root = Path(sys.argv[1])
-    if not (root / "labels_orig").exists():
-        shutil.copytree(root / "labels", root / "labels_orig")
+    splits = sys.argv[2].split(",") if len(sys.argv) > 2 else ["train", "val"]
+    for sp in splits:
+        if not (root / "labels_orig" / sp).exists():
+            shutil.copytree(root / "labels" / sp, root / "labels_orig" / sp)
     dev = "cuda" if torch.cuda.is_available() else "mps"
     proc = AutoProcessor.from_pretrained(ROOT / "weights" / "grounding-dino-base")
     model = AutoModelForZeroShotObjectDetection.from_pretrained(ROOT / "weights" / "grounding-dino-base").to(dev).eval()
 
     # group images by which labels they are missing, so each batch shares one prompt
     jobs = {}
-    for split in ("train", "val"):
+    for split in splits:
         for img in sorted((root / "images" / split).glob("*.jpg")):
+            if img.name.startswith("."):
+                continue
             source = img.stem.split("__")[0]
             missing = tuple(sorted(ALL - COVERED.get(source, ALL) - NEVER_FILL))
             if missing:
