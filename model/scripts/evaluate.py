@@ -32,7 +32,10 @@ IOU = 0.5
 
 
 def ground_truth():
-    """{file: [(label, [x0, y0, x1, y1])]} from completed annotations."""
+    """{file: [(label, [x0, y0, x1, y1])]} from completed annotations (frozen snapshot if present)."""
+    snap = ROOT / "data" / "eval" / "test_gt.json"
+    if snap.exists():
+        return {f: [tuple(b) for b in v] for f, v in json.load(open(snap)).items()}
     tok = access_token()
     gt, page = {}, 1
     while True:
@@ -99,6 +102,17 @@ def predict_yolo(weights, files):
     return out, {name_of(m.names, k) for k in m.names}
 
 
+def predict_combo(cfg_path, files):
+    cfg = json.load(open(cfg_path))
+    out = {f: [] for f in files}
+    for w in sorted(set(cfg["per_label"].values())):
+        preds, _ = predict_yolo(ROOT / w, files)
+        mine = {l for l, x in cfg["per_label"].items() if x == w}
+        for f in files:
+            out[f] += [p for p in preds[f] if p[0] in mine]
+    return out, set(cfg["per_label"])
+
+
 def name_of(names, c):
     """Fine-tuned YOLO-World was trained with plain-phrase class names; map them back by index."""
     n = names[int(c)]
@@ -155,13 +169,14 @@ def main():
                                                      for l in labels_in_test}, "models": {}}
     for m in a.models:
         name = ("grounding-dino (untrained)" if m == "gdino" else "yolo-world (untrained)" if m.endswith("yolov8l-worldv2.pt")
-                else Path(m).parts[-3])
+                else Path(m).stem if m.endswith(".json") else Path(m).parts[-3])
         cache = ROOT / a.out / f"preds_{name.split()[0]}.json"
         hit = json.load(open(cache)) if cache.exists() else None
         if hit and set(hit["preds"]) >= set(files):
             preds, known = {f: [tuple(x) for x in hit["preds"][f]] for f in files}, set(hit["known"])
         else:
-            preds, known = predict_gdino(files) if m == "gdino" else predict_yolo(ROOT / m, files)
+            preds, known = (predict_gdino(files) if m == "gdino" else predict_combo(ROOT / m, files)
+                            if m.endswith(".json") else predict_yolo(ROOT / m, files))
             cache.parent.mkdir(parents=True, exist_ok=True)
             json.dump({"preds": preds, "known": sorted(known)}, open(cache, "w"))
         per = {}

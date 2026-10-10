@@ -29,6 +29,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).parent))
 from prelabel import GROUPS, PHRASES, label_for  # noqa: E402
 
+LABELS16 = ["rug", "toilet", "toilet_roll_holder", "towel", "mirror", "stairs", "cable", "floor_clutter", "bin",
+            "bed", "sofa", "chair", "table", "door", "window", "glass_door"]
 FLOOR_ITEMS = {"cable", "floor_clutter"}
 FIXTURES = {"toilet", "toilet_roll_holder", "towel"}
 FURNITURE = {"bed", "sofa", "chair", "table"}
@@ -82,9 +84,20 @@ class Analyzer:
         self.gd_proc = AutoProcessor.from_pretrained(ROOT / "weights" / "grounding-dino-base")
         self.gd = AutoModelForZeroShotObjectDetection.from_pretrained(
             ROOT / "weights" / "grounding-dino-base").to(self.dev).eval()
+        self.yolos = []  # [(model, labels it is responsible for or None=all, name map)]
         if detector != "gdino":
             from ultralytics import YOLO
-            self.yolo = YOLO(detector)
+            cfg = json.load(open(ROOT / "combo.json")) if detector == "combo" else {"per_label": None, "only": detector}
+            weights = sorted(set(cfg["per_label"].values())) if cfg["per_label"] else [cfg["only"]]
+            for w in weights:
+                m = YOLO(ROOT / w)
+                if Path(w).name == "yolov8l-worldv2.pt":
+                    prompts = json.load(open(ROOT / "prompts.json"))["labels"]
+                    m.set_classes([prompts[l][0] for l in LABELS16])
+                    m.model.names = dict(enumerate(LABELS16))
+                names = {k: (v if v in LABELS16 or len(m.names) != 16 else LABELS16[k]) for k, v in m.names.items()}
+                mine = {l for l, x in cfg["per_label"].items() if x == w} if cfg["per_label"] else None
+                self.yolos.append((m, mine, names))
         self.sam_proc = Sam2Processor.from_pretrained(ROOT / "weights" / "sam2.1-hiera-large")
         self.sam = Sam2Model.from_pretrained(ROOT / "weights" / "sam2.1-hiera-large").to(self.dev).eval()
 
@@ -97,11 +110,15 @@ class Analyzer:
 
     def detect(self, im):
         """[(label, [x0, y0, x1, y1], score)] for the detector's object labels."""
-        if self.detector != "gdino":
-            r = self.yolo.predict(np.array(im)[:, :, ::-1], conf=0.30, verbose=False,
-                                  device=0 if self.dev == "cuda" else self.dev)[0]
-            return [(r.names[int(c)], b, float(s)) for b, c, s in
-                    zip(r.boxes.xyxy.tolist(), r.boxes.cls.tolist(), r.boxes.conf.tolist())]
+        if self.yolos:
+            dets = []
+            for m, mine, names in self.yolos:
+                r = m.predict(np.array(im)[:, :, ::-1], conf=0.30, verbose=False,
+                              device=0 if self.dev == "cuda" else self.dev)[0]
+                dets += [(names[int(c)], b, float(s)) for b, c, s in
+                         zip(r.boxes.xyxy.tolist(), r.boxes.cls.tolist(), r.boxes.conf.tolist())
+                         if mine is None or names[int(c)] in mine]
+            return dets
         dets = []
         for group in GROUPS:
             prompt = " . ".join(p for lab in group for p in PHRASES[lab]) + " ."
