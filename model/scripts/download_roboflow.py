@@ -34,6 +34,10 @@ DATASETS = {
     "superfish-5k9sp/robot-vacuum-cleaner": "cable (wire, thread), floor_clutter",
     "sasya-0ullp/messy-room-y5qsc": "floor_clutter, chair, table",
     "sds-first-workspace/messy-imgs": "floor_clutter, chair, table, bed, mirror",
+    # added Oct 10 for run 2 (glass doors; checked by eye, CCTV-only set skipped)
+    "annotation-4rrq6/shower-and-screen-91lzq": "glass_door (shower screens)",
+    "indoor-detection/glass-door-stair-fish_tank-tllvf": "glass_door, stairs",
+    "xinen-2awjn/hazardcap-glass-door": "glass_door (shop entrances)",
 }
 
 rf = Roboflow(api_key=KEY)

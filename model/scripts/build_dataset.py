@@ -26,7 +26,8 @@ DATA = ROOT / "data"
 OUT = DATA / "yolo"
 
 LABELS = ["rug", "toilet", "toilet_roll_holder", "towel", "mirror", "stairs", "cable",
-          "floor_clutter", "bin", "bed", "sofa", "chair", "table"]
+          "floor_clutter", "bin", "bed", "sofa", "chair", "table",
+          "door", "window", "glass_door"]  # run 2 adds the last three
 ID = {n: i for i, n in enumerate(LABELS)}
 MAX_SIDE = 1024
 VAL_FRACTION = 0.10
@@ -42,7 +43,8 @@ OPEN_IMAGES = {
 }
 # ADE20K objectInfo150 index (= pixel value in the annotation PNG) -> our label
 ADE = {29: "rug", 66: "toilet", 82: "towel", 28: "mirror", 54: "stairs", 60: "stairs", 122: "stairs",
-       139: "bin", 8: "bed", 24: "sofa", 31: "sofa", 20: "chair", 76: "chair", 16: "table", 65: "table"}
+       139: "bin", 8: "bed", 24: "sofa", 31: "sofa", 20: "chair", 76: "chair", 16: "table", 65: "table",
+       15: "door", 9: "window"}
 ADE_HOME_SCENES = {"bedroom", "living_room", "bathroom", "kitchen", "dining_room", "corridor", "home_office",
                    "attic", "childs_room", "staircase", "basement", "hallway", "kitchenette",
                    "entrance_hall", "entranceway_indoor"}
@@ -50,6 +52,7 @@ ADE_MIN_AREA = 0.001  # drop pieces smaller than 0.1% of the image
 ROBOFLOW = {
     "mirror": "mirror", "towel": "towel", "wc": "toilet", "Toilet": "toilet", "Carpet": "rug",
     "carpet": "rug", "cables": "cable", "stairs": "stairs", "Toilet-paper": "toilet_roll_holder",
+    "shower_screen": "glass_door", "glass_door": "glass_door", "Glass door": "glass_door", "stair": "stairs",
 }
 # Messy-home sets: furniture keeps its own label, loose items become floor_clutter, the rest is dropped.
 MESSY_CLUTTER = {"book", "bottle", "box", "clothes", "plastic bag", "toy", "bag", "basket", "newspaper",

@@ -20,7 +20,8 @@ from prelabel import PHRASES, label_for  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 LABELS = ["rug", "toilet", "toilet_roll_holder", "towel", "mirror", "stairs", "cable",
-          "floor_clutter", "bin", "bed", "sofa", "chair", "table"]
+          "floor_clutter", "bin", "bed", "sofa", "chair", "table", "door", "window", "glass_door"]
+NEVER_FILL = {"glass_door"}
 ID = {n: i for i, n in enumerate(LABELS)}
 ALL = set(LABELS)
 BATCH = 16
@@ -33,7 +34,7 @@ SAME_BOX_IOU = 0.5
 STAIRS = {"stairs"}
 COVERED = {
     "oi": {"toilet", "toilet_roll_holder", "towel", "mirror", "stairs", "bin", "bed", "sofa", "chair", "table"},
-    "ade": {"rug", "toilet", "towel", "mirror", "stairs", "bin", "bed", "sofa", "chair", "table"},
+    "ade": {"rug", "toilet", "towel", "mirror", "stairs", "bin", "bed", "sofa", "chair", "table", "door", "window"},
     "lvis": {"toilet_roll_holder", "rug", "toilet", "mirror", "bin", "towel", "bed", "sofa", "chair", "table", "floor_clutter"},
     "rf-stairs-spqnr": STAIRS, "rf-stairs-i2yia": STAIRS, "rf-stairs-segmentation": STAIRS,
     "rf-cable-dataset": ALL,  # pasted-wire images: nothing else real to find
@@ -45,6 +46,9 @@ COVERED = {
     "rf-messy-room-y5qsc": {"floor_clutter", "chair", "table"},
     "rf-messy-imgs": {"floor_clutter", "chair", "table", "bed", "sofa", "mirror"},
     "rf-robot-vacuum-cleaner": {"floor_clutter"},
+    "rf-shower-and-screen-91lzq": {"glass_door"},
+    "rf-glass-door-stair-fish_tank-tllvf": {"glass_door", "stairs"},
+    "rf-hazardcap-glass-door": ALL,  # shop entrances: nothing else from our list to find
 }
 
 
@@ -68,7 +72,7 @@ def main():
     for split in ("train", "val"):
         for img in sorted((root / "images" / split).glob("*.jpg")):
             source = img.stem.split("__")[0]
-            missing = tuple(sorted(ALL - COVERED.get(source, ALL)))
+            missing = tuple(sorted(ALL - COVERED.get(source, ALL) - NEVER_FILL))
             if missing:
                 jobs.setdefault(missing, []).append((split, img))
     total = sum(len(v) for v in jobs.values())

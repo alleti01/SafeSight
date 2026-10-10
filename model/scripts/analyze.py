@@ -1,12 +1,22 @@
 """The brain: photos (or video frames) + room -> hazards in the shared/contract.json format.
 
-detect objects -> SAM 2 outline -> check the problem (contrast, darkness, glare, pattern, on the floor)
--> map to the 10 hazard codes -> merge repeats across frames -> write frames, outline PNGs, result.json.
+detect objects (fine-tuned YOLO or Grounding DINO) + scene regions (floor, wall, door, window, glass door,
+coats; Grounding DINO) -> SAM 2 outlines -> check the problem (LRV contrast, darkness, glare, pattern,
+position) -> hazard codes -> merge repeats across frames -> frames, outline PNGs, result.json.
+
+Contrast rules use light reflectance value (LRV ~ 100 x relative luminance of linearised sRGB) with the
+published dementia/low-vision thresholds (see HAZARD_RESEARCH.md):
+  - critical surfaces (object vs surroundings, floor vs wall, door vs wall) need >= 30 LRV points;
+    < 20 is poor (BS 8300 / DSDC / Thomas Pocklington Trust)
+  - adjoining floor finishes should differ by <= 10 LRV points, ideally < 8 (DSDC)
+Only surfaces side by side in the same frame are compared, because phone auto-exposure makes absolute
+values unreliable.
 
 Usage: analyze.py --room bathroom --out out/job1 [--detector gdino | --detector runs/run1/weights/best.pt] photo1.jpg ...
 """
 import argparse
 import json
+import sys
 import uuid
 from pathlib import Path
 
@@ -16,7 +26,6 @@ import torch
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-import sys  # noqa: E402
 sys.path.insert(0, str(Path(__file__).parent))
 from prelabel import GROUPS, PHRASES, label_for  # noqa: E402
 
@@ -26,17 +35,39 @@ FURNITURE = {"bed", "sofa", "chair", "table"}
 SEV_COLOR = {"high": (220, 38, 38), "medium": (245, 158, 11), "low": (59, 130, 246)}
 SEV_RANK = {"high": 3, "medium": 2, "low": 1}
 
-# Rule thresholds (first guesses; tune on the labeled home test set)
-DARK_RUG_DL = 25          # rug at least this much darker (L*, 0-100) than the floor around it
-DARK_RUG_HIGH_DL = 40
-PATTERN_EDGES = 0.12      # share of edge pixels inside a rug/floor that counts as a busy pattern
-FIXTURE_BLEND_DE = 18     # colour difference (Delta E) below which a fixture blends into its surroundings
-FIXTURE_HIGH_DE = 10
-FURNITURE_BLEND_DE = 12
-FURNITURE_MED_DE = 7
+# ---- thresholds from the guidance (LRV points) ----
+LRV_POOR = 20             # below this between critical surfaces: flag
+LRV_BAD = 10              # below this: hard to tell apart at all
+FLOOR_STEP_LRV = 10       # adjoining floor areas differing by more than this can read as a step or hole
+DARK_RUG_HIGH_LRV = 30    # rug darker than the floor by at least this: severe
+# ---- image-measurement thresholds (tuned by eye on our footage) ----
+PATTERN_EDGES = 0.12      # share of edge pixels inside a region that counts as a busy pattern
+WALL_PATTERN_EDGES = 0.10
 STAIR_EDGE_STRENGTH = 4.0 # mean vertical brightness change inside stairs; below = step edges hard to see
 GLARE_SHARE = 0.02        # share of very bright, colourless floor pixels that counts as glare
 ON_FLOOR_Y = 0.55         # box bottom below this share of image height = on the floor
+DARK_WINDOW_LRV = 6       # window this dark while the room is lit = black glass at night
+LIT_ROOM_LRV = 20
+
+# Scene regions found with Grounding DINO text prompts (no training needed). Each special prompt runs
+# alone with its own threshold: in a shared prompt "glass door" and "coat" leak onto every door and garment.
+SCENE = {
+    "floor": ["floor"],
+    "wall": ["wall"],
+    "door": ["door"],
+    "window": ["window"],
+}
+SPECIAL = {
+    "glass_door": ("glass shower door . sliding glass door . glass door .", 0.45),
+    "coat": ("coat hanging on a hook . dressing gown hanging on a door . coat rack .", 0.40),
+}
+MIN_WINDOW_SHARE = 0.03   # window must cover at least 3% of the frame
+
+
+def scene_label(text):
+    t = text.lower()
+    hits = [(len(p), lab) for lab, ps in SCENE.items() for p in ps if p in t]
+    return max(hits)[1] if hits else None
 
 
 def device():
@@ -58,7 +89,6 @@ class Analyzer:
         self.sam_proc = Sam2Processor.from_pretrained(ROOT / "weights" / "sam2.1-hiera-large")
         self.sam = Sam2Model.from_pretrained(ROOT / "weights" / "sam2.1-hiera-large").to(self.dev).eval()
 
-    # ---------- detection ----------
     def _gd(self, im, prompt, threshold=0.30):
         inp = self.gd_proc(images=im, text=prompt, return_tensors="pt").to(self.dev)
         with torch.no_grad():
@@ -67,9 +97,10 @@ class Analyzer:
             out, inp.input_ids, threshold=threshold, text_threshold=0.25, target_sizes=[im.size[::-1]])[0]
 
     def detect(self, im):
-        """[(label, [x0, y0, x1, y1], score)] for our 13 object labels."""
+        """[(label, [x0, y0, x1, y1], score)] for the detector's object labels."""
         if self.detector != "gdino":
-            r = self.yolo.predict(np.array(im)[:, :, ::-1], conf=0.30, verbose=False, device=0 if self.dev == "cuda" else self.dev)[0]
+            r = self.yolo.predict(np.array(im)[:, :, ::-1], conf=0.30, verbose=False,
+                                  device=0 if self.dev == "cuda" else self.dev)[0]
             return [(r.names[int(c)], b, float(s)) for b, c, s in
                     zip(r.boxes.xyxy.tolist(), r.boxes.cls.tolist(), r.boxes.conf.tolist())]
         dets = []
@@ -82,13 +113,28 @@ class Analyzer:
                     dets.append((lab, b, float(s)))
         return dets
 
-    def floor_box(self, im):
-        r = self._gd(im, "floor .", threshold=0.30)
-        if not len(r["boxes"]):
-            return None
-        return r["boxes"][int(torch.argmax(r["scores"]))].tolist()
+    def scene(self, im):
+        """[(region, box, score)] for floor/wall/door/window/glass door/coat."""
+        prompt = " . ".join(p for ps in SCENE.values() for p in ps) + " ."
+        r = self._gd(im, prompt, threshold=0.30)
+        out = []
+        for b, s, t in zip(r["boxes"].tolist(), r["scores"].tolist(), r["text_labels"]):
+            lab = scene_label(t)
+            if lab:
+                out.append((lab, b, float(s)))
+        W, H = im.size
+        for lab, (prompt, thr) in SPECIAL.items():
+            r = self._gd(im, prompt, threshold=thr)
+            for b, s in zip(r["boxes"].tolist(), r["scores"].tolist()):
+                w, h = b[2] - b[0], b[3] - b[1]
+                if w * h > 0.9 * W * H:
+                    continue
+                # a coat that looks like a person: upright, hanging (top in the upper half of the frame)
+                if lab == "coat" and not (h > 1.3 * w and b[1] < 0.5 * H):
+                    continue
+                out.append((lab, b, float(s)))
+        return out
 
-    # ---------- outlines ----------
     def segment(self, im, boxes):
         if not boxes:
             return []
@@ -100,6 +146,13 @@ class Analyzer:
 
 
 # ---------- measurements ----------
+def lrv_image(rgb):
+    """Approximate light reflectance value per pixel (0-100): 100 x relative luminance of linear sRGB."""
+    c = rgb.astype(np.float32) / 255
+    lin = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+    return 100 * (0.2126 * lin[..., 0] + 0.7152 * lin[..., 1] + 0.0722 * lin[..., 2])
+
+
 def lab_image(rgb):
     lab = cv2.cvtColor(rgb, cv2.COLOR_RGB2LAB).astype(np.float32)
     lab[..., 0] *= 100 / 255
@@ -113,18 +166,18 @@ def ring(mask, frac=0.15):
     return grown & ~mask
 
 
-def contrast(lab, mask):
-    """(Delta E between object and surroundings, L* surroundings minus L* object)."""
-    r = ring(mask)
+def lrv_contrast(lrv, mask, around=None):
+    """(|LRV object - LRV surroundings|, surroundings - object). Median is robust to small highlights."""
+    r = ring(mask) if around is None else around
     if mask.sum() < 50 or r.sum() < 50:
         return None, None
-    a, b = lab[mask].mean(0), lab[r].mean(0)
-    return float(np.linalg.norm(a - b)), float(b[0] - a[0])
+    a, b = float(np.median(lrv[mask])), float(np.median(lrv[r]))
+    return abs(a - b), b - a
 
 
 def edge_share(rgb, mask):
     edges = cv2.Canny(cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY), 80, 160) > 0
-    inner = cv2.erode(mask.astype(np.uint8), np.ones((7, 7), np.uint8)) > 0  # ignore the object's own outline
+    inner = cv2.erode(mask.astype(np.uint8), np.ones((7, 7), np.uint8)) > 0
     return float(edges[inner].mean()) if inner.sum() > 100 else 0.0
 
 
@@ -139,28 +192,60 @@ def glare_share(lab, mask):
     return float(bright[mask].mean()) if mask.sum() > 100 else 0.0
 
 
+def floor_step(lrv, lab, floor, exclude):
+    """Two large floor areas with different finishes side by side (not just a shadow):
+    returns (LRV difference, mask of the darker area) or (None, None)."""
+    m = floor & ~exclude
+    if m.sum() < 2000:
+        return None, None
+    ys, xs = np.nonzero(m)
+    feats = np.stack([lrv[ys, xs], lab[ys, xs, 1], lab[ys, xs, 2]], 1).astype(np.float32)
+    _, lbl, cen = cv2.kmeans(feats, 2, None, (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 0.5),
+                             3, cv2.KMEANS_PP_CENTERS)
+    lbl = lbl.ravel()
+    share = np.bincount(lbl, minlength=2) / len(lbl)
+    d_lrv = abs(float(cen[0, 0] - cen[1, 0]))
+    d_hue = float(np.linalg.norm(cen[0, 1:] - cen[1, 1:]))
+    # shadows change brightness but not colour; a change of finish changes both
+    if share.min() < 0.15 or d_lrv <= FLOOR_STEP_LRV or d_hue < 6:
+        return None, None
+    dark = int(np.argmin(cen[:, 0]))
+    out = np.zeros_like(m)
+    out[ys[lbl == dark], xs[lbl == dark]] = True
+    out = cv2.morphologyEx(out.astype(np.uint8), cv2.MORPH_OPEN, np.ones((9, 9), np.uint8)) > 0
+    return (d_lrv, out) if out.sum() > 1000 else (None, None)
+
+
+def box_of(mask):
+    ys, xs = np.nonzero(mask)
+    return [float(xs.min()), float(ys.min()), float(xs.max()), float(ys.max())]
+
+
 # ---------- object -> hazard rules ----------
-def hazards_for(label, mask, box, score, lab, rgb, room, H):
+def hazards_for(label, mask, box, lab, lrv, rgb, room, H, floor):
     """Return [(hazard_type, severity, evidence)] for one detected object."""
     out = []
-    de, dl = contrast(lab, mask)
+    around = (ring(mask) & floor) if label == "rug" and floor is not None and (ring(mask) & floor).sum() > 200 else None
+    d, darker_by = lrv_contrast(lrv, mask, around)
+    ev = {"lrv_difference": round(d, 1)} if d is not None else {}
     if label == "rug":
-        if dl is not None and dl >= DARK_RUG_DL:
-            out.append(("dark_rug", "high" if dl >= DARK_RUG_HIGH_DL else "medium", {"darker_by": round(dl, 1)}))
+        if darker_by is not None and darker_by > FLOOR_STEP_LRV:
+            out.append(("dark_rug", "high" if darker_by >= DARK_RUG_HIGH_LRV else "medium",
+                        {"darker_than_floor_by": round(darker_by, 1)}))
         else:
             out.append(("loose_rug", "medium" if room in ("hallway", "stairs") else "low", {}))
         es = edge_share(rgb, mask)
         if es >= PATTERN_EDGES:
             out.append(("patterned_floor", "medium", {"edge_share": round(es, 3)}))
     elif label in FIXTURES:
-        if de is not None and de < FIXTURE_BLEND_DE:
-            sev = "high" if label == "toilet" and de < FIXTURE_HIGH_DE else "medium"
-            out.append(("bathroom_fitting_blends_in", sev, {"delta_e": round(de, 1)}))
+        if d is not None and d < LRV_POOR:
+            sev = "high" if label == "toilet" and d < LRV_BAD else "medium"
+            out.append(("bathroom_fitting_blends_in", sev, ev))
     elif label in FURNITURE:
-        if de is not None and de < FURNITURE_BLEND_DE:
-            out.append(("furniture_blends_in", "medium" if de < FURNITURE_MED_DE else "low", {"delta_e": round(de, 1)}))
+        if d is not None and d < LRV_POOR:
+            out.append(("furniture_blends_in", "medium" if d < LRV_BAD else "low", ev))
     elif label == "mirror":
-        out.append(("mirror", "medium", {}))
+        out.append(("mirror", "low", {}))
     elif label == "stairs":
         s = stair_edge_strength(lab, mask)
         if s < STAIR_EDGE_STRENGTH:
@@ -181,34 +266,89 @@ def iou(a, b):
     return inter / ((a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter + 1e-9)
 
 
-def analyze_frame(an, im, room):
-    rgb = np.array(im)
-    H = rgb.shape[0]
-    lab = lab_image(rgb)
-    dets = an.detect(im)
-    # same label, heavily overlapping boxes: keep the most confident
-    dets.sort(key=lambda d: -d[2])
+def dedupe(dets, thr=0.6):
+    dets = sorted(dets, key=lambda d: -d[2])
     kept = []
     for d in dets:
-        if all(not (d[0] == k[0] and iou(d[1], k[1]) > 0.6) for k in kept):
+        if all(not (d[0] == k[0] and iou(d[1], k[1]) > thr) for k in kept):
             kept.append(d)
-    masks = an.segment(im, [d[1] for d in kept])
+    return kept
+
+
+def analyze_frame(an, im, room):
+    rgb = np.array(im)
+    H, W = rgb.shape[:2]
+    lab, lrv = lab_image(rgb), lrv_image(rgb)
+    objs = dedupe(an.detect(im))
+    scene = dedupe(an.scene(im))
+    # the fine-tuned detector may already know door/window; prefer its boxes
+    have = {o[0] for o in objs}
+    scene = [s for s in scene if s[0] not in have] + [o for o in objs if o[0] in SCENE]
+    objs = [o for o in objs if o[0] not in SCENE]
+    masks = an.segment(im, [o[1] for o in objs] + [s[1] for s in scene])
+    omasks, smasks = masks[:len(objs)], masks[len(objs):]
+
+    def union(name):
+        ms = [m for (l, _, _), m in zip(scene, smasks) if l == name]
+        return np.logical_or.reduce(ms) if ms else None
+
+    floor, wall = union("floor"), union("wall")
     found = []
-    for (label, box, score), mask in zip(kept, masks):
-        for htype, sev, ev in hazards_for(label, mask, box, score, lab, rgb, room, H):
-            found.append({"type": htype, "severity": sev, "confidence": round(score, 2), "box": box,
-                          "mask": mask, "object": label, "evidence": ev})
-    fb = an.floor_box(im)
-    if fb:
-        fmask = an.segment(im, [fb])[0]
-        g = glare_share(lab, fmask)
+
+    def add(t, sev, conf, box, mask, obj, ev):
+        found.append({"type": t, "severity": sev, "confidence": round(conf, 2), "box": box,
+                      "mask": mask, "object": obj, "evidence": ev})
+
+    for (label, box, score), mask in zip(objs, omasks):
+        for t, sev, ev in hazards_for(label, mask, box, lab, lrv, rgb, room, H, floor):
+            add(t, sev, score, box, mask, label, ev)
+
+    obj_union = np.logical_or.reduce(omasks) if omasks else np.zeros((H, W), bool)
+    lit_room = float(np.median(lrv)) >= LIT_ROOM_LRV
+
+    glass = [b for l, b, _ in scene if l == "glass_door"]
+    for (label, box, score), mask in zip(scene, smasks):
+        if label == "door" and any(iou(box, g) > 0.5 for g in glass):
+            continue  # already reported as a glass door
+        if label == "glass_door":
+            add("glass_door", "medium", score, box, mask, label, {})
+        elif label == "coat":
+            add("person_lookalike", "low", score, box, mask, label, {})
+        elif label == "door":
+            around = ring(mask) & wall if wall is not None and (ring(mask) & wall).sum() > 200 else None
+            d, _ = lrv_contrast(lrv, mask, around)
+            if d is not None and d < LRV_POOR:
+                add("door_blends_in", "medium" if d < LRV_BAD else "low", score, box, mask, label,
+                    {"lrv_difference": round(d, 1)})
+        elif label == "window":
+            if lit_room and mask.mean() >= MIN_WINDOW_SHARE and float(np.median(lrv[mask])) < DARK_WINDOW_LRV:
+                add("window_reflection", "low", score, box, mask, label,
+                    {"window_lrv": round(float(np.median(lrv[mask])), 1)})
+
+    if floor is not None and floor.sum() > 2000:
+        fb = box_of(floor)
+        g = glare_share(lab, floor)
         if g >= GLARE_SHARE:
-            found.append({"type": "shiny_floor", "severity": "low", "confidence": 0.5, "box": fb, "mask": fmask,
-                          "object": "floor", "evidence": {"glare_share": round(g, 3)}})
-        es = edge_share(rgb, fmask)
+            add("shiny_floor", "low", 0.5, fb, floor, "floor", {"glare_share": round(g, 3)})
+        es = edge_share(rgb, floor & ~obj_union)
         if es >= PATTERN_EDGES:
-            found.append({"type": "patterned_floor", "severity": "medium", "confidence": 0.5, "box": fb,
-                          "mask": fmask, "object": "floor", "evidence": {"edge_share": round(es, 3)}})
+            add("patterned_floor", "medium", 0.5, fb, floor, "floor", {"edge_share": round(es, 3)})
+        d, step = floor_step(lrv, lab, floor, obj_union)
+        if d is not None:
+            add("floor_transition", "medium" if d > 2 * FLOOR_STEP_LRV else "low", 0.5, box_of(step), step,
+                "floor", {"lrv_difference": round(d, 1)})
+        if wall is not None and wall.sum() > 2000:
+            fw = floor & (cv2.dilate(wall.astype(np.uint8), np.ones((41, 41), np.uint8)) > 0)
+            ww = wall & (cv2.dilate(floor.astype(np.uint8), np.ones((41, 41), np.uint8)) > 0)
+            d, _ = lrv_contrast(lrv, fw, ww)
+            if d is not None and fw.sum() > 500 and ww.sum() > 500 and d < LRV_POOR:
+                edge = fw | ww
+                add("floor_wall_blend", "medium" if d < LRV_BAD else "low", 0.5, box_of(edge), edge,
+                    "floor+wall", {"lrv_difference": round(d, 1)})
+    if wall is not None and wall.sum() > 5000:
+        es = edge_share(rgb, wall & ~obj_union)
+        if es >= WALL_PATTERN_EDGES:
+            add("patterned_wall", "low", 0.5, box_of(wall), wall, "wall", {"edge_share": round(es, 3)})
     return found
 
 
@@ -265,7 +405,7 @@ def run(an, image_paths, room, out_dir, job_id=None, video_info=None):
         out_h.append({"hazard_id": hid, "type": h["type"], "severity": h["severity"],
                       "confidence": h["confidence"], "frame_id": frame_ids[h["frame"]],
                       "box": [int(round(v)) for v in h["box"]], "outline_url": f"/outlines/{hid}.png"})
-        debug.append({"hazard_id": hid, "object": h["object"], "evidence": h["evidence"],
+        debug.append({"hazard_id": hid, "type": h["type"], "object": h["object"], "evidence": h["evidence"],
                       "source": str(image_paths[h["frame"]])})
     result = {"job_id": job_id, "room": room, "frames": frames, "hazards": out_h}
     json.dump(result, open(out_dir / "result.json", "w"), indent=2)

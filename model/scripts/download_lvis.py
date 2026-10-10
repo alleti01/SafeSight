@@ -146,3 +146,4 @@ def fetch_pool(item):
 with ThreadPoolExecutor(12) as ex:
     list(ex.map(fetch_pool, pool.items()))
 print("cable pool downloaded:", len(list((LV / "cable_pool").glob("*.jpg"))))
+

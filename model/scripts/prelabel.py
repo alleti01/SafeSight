@@ -28,13 +28,17 @@ PHRASES = {
     "sofa": ["sofa", "couch"],
     "chair": ["chair"],
     "table": ["table", "desk"],
+    "door": ["door"],
+    "window": ["window"],
+    "glass_door": ["glass door", "shower screen"],
 }
 BOX_THRESHOLD = 0.30
 TEXT_THRESHOLD = 0.25
 # Grounding DINO handles long prompts poorly, so the labels are asked in a few smaller groups
 GROUPS = [["rug", "toilet", "toilet_roll_holder", "towel", "mirror"],
           ["stairs", "cable", "floor_clutter", "bin"],
-          ["bed", "sofa", "chair", "table"]]
+          ["bed", "sofa", "chair", "table"],
+          ["door", "window", "glass_door"]]
 
 
 def label_for(text):
