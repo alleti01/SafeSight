@@ -7,6 +7,7 @@ Output: model/data/yolo/
 The test split (our own home) is added later in Phase 2.3.
 """
 import hashlib
+import json
 import random
 import shutil
 from collections import Counter
@@ -50,13 +51,39 @@ ROBOFLOW = {
     "mirror": "mirror", "towel": "towel", "wc": "toilet", "Toilet": "toilet", "Carpet": "rug",
     "carpet": "rug", "cables": "cable", "stairs": "stairs", "Toilet-paper": "toilet_roll_holder",
 }
+# Messy-home sets: furniture keeps its own label, loose items become floor_clutter, the rest is dropped.
+MESSY_CLUTTER = {"book", "bottle", "box", "clothes", "plastic bag", "toy", "bag", "basket", "newspaper",
+                 "shoes", "teddy", "remote", "mobile", "glasses", "mouse", "nail"}
+MESSY_FURNITURE = {"chair": "chair", "stool": "chair", "table": "table", "bed": "bed", "sofa": "sofa", "mirror": "mirror"}
+MESSY_SETS = {"sasya-0ullp__messy-room-y5qsc", "sds-first-workspace__messy-imgs", "superfish-5k9sp__robot-vacuum-cleaner"}
 CLUTTER_SET = "hoarding-support__clutter-classes"  # every class except furniture -> floor_clutter
+CABLES_APPROVED = DATA / "cable_search" / "approved.json"  # {image path: [[x0, y0, x1, y1], ...]} pixels
+
+
+def rf_label(dataset, n):
+    if dataset == CLUTTER_SET:
+        return "floor_clutter" if n != "furniture" else None
+    if dataset in MESSY_SETS:
+        return MESSY_FURNITURE.get(n) or ("floor_clutter" if n in MESSY_CLUTTER else None)
+    return ROBOFLOW.get(n)
+
+
+def approved_cables():
+    """Cable boxes found by Grounding DINO and approved by eye, normalized, keyed by image path."""
+    if not CABLES_APPROVED.exists():
+        return {}
+    out = {}
+    for path, boxes in json.load(open(CABLES_APPROVED)).items():
+        W, H = Image.open(ROOT / path).size
+        out[str(ROOT / path)] = [("cable", (x0 + x1) / 2 / W, (y0 + y1) / 2 / H, (x1 - x0) / W, (y1 - y0) / H)
+                                 for x0, y0, x1, y1 in boxes]
+    return out
 # Cable set: product photos and a lab photo, by index into its sorted image list (checked by eye Oct 10)
 CABLE_SET = "bartu-erguven-qpopt__cable-dataset"
 CABLE_DROP = {14, 15, 16, 17, 18, 19, 20, 21, 22, 27, 30, 32, 35, 43, 72, 115, 116, 117, 136, 142}
 
 
-def save(src_img, boxes, name, group):
+def save(src_img, boxes, name, group, split_hint=None):
     """Resize, write a temp image + label, and return a manifest row. boxes: [(label, xc, yc, w, h)] normalized."""
     im = Image.open(src_img).convert("RGB")
     im.thumbnail((MAX_SIDE, MAX_SIDE))
@@ -69,7 +96,7 @@ def save(src_img, boxes, name, group):
         if w > 0.002 and h > 0.002:
             lines.append(f"{ID[lab]} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}")
     (OUT / "_all" / "labels" / f"{name}.txt").write_text("\n".join(lines))
-    return {"name": name, "source": name.split("__")[0], "group": group,
+    return {"name": name, "source": name.split("__")[0], "group": group, "split_hint": split_hint,
             "phash": str(imagehash.phash(im)), "n_boxes": len(lines),
             "labels": " ".join(sorted({LABELS[int(l.split()[0])] for l in lines}))}
 
@@ -135,8 +162,7 @@ def rf_jobs():
                 parts = line.split()
                 if not parts:
                     continue
-                n = names[int(parts[0])]
-                lab = ("floor_clutter" if n != "furniture" else None) if d.name == CLUTTER_SET else ROBOFLOW.get(n)
+                lab = rf_label(d.name, names[int(parts[0])])
                 if lab is None:
                     continue
                 c = list(map(float, parts[1:]))
@@ -148,22 +174,45 @@ def rf_jobs():
             orig = img.stem.split(".rf.")[0]  # augmented copies share this prefix
             short = d.name.split("__")[1]
             uid = hashlib.md5(str(img).encode()).hexdigest()[:10]
-            jobs.append((img, boxes, f"rf-{short}__{uid}", f"rf-{short}__{orig}"))
+            # Roboflow's own held-out images go to val, except the pasted-wire cable set (not real homes): train only
+            hint = "train" if d.name == CABLE_SET else "val" if img.parent.parent.name in ("valid", "test") else None
+            jobs.append((img, boxes, f"rf-{short}__{uid}", f"rf-{short}__{orig}", hint))
     print(f"Roboflow: {len(jobs)} images")
     return jobs
 
 
+# ---------- LVIS (COCO photos) ----------
+def lvis_jobs(cables):
+    lv = DATA / "lvis"
+    jobs = []
+    for name, boxes in json.load(open(lv / "selection.json")).items():
+        jobs.append((lv / "images" / f"{name}.jpg", [tuple(b) for b in boxes], f"lvis__{name}", f"lvis__{name}"))
+    # cable-pool photos join only if a cable box was approved in them
+    pool = json.load(open(lv / "cable_pool_boxes.json"))
+    n_pool = 0
+    for name, boxes in pool.items():
+        path = lv / "cable_pool" / f"{name}.jpg"
+        if str(path) in cables:
+            jobs.append((path, [tuple(b) for b in boxes] + cables[str(path)], f"lvis__{name}", f"lvis__{name}"))
+            n_pool += 1
+    print(f"LVIS: {len(jobs)} images ({n_pool} from the cable pool)")
+    return jobs
+
+
 def main():
-    if OUT.exists():
-        shutil.rmtree(OUT)
+    shutil.rmtree(OUT, ignore_errors=True)  # macOS can drop .DS_Store files in while deleting
+    shutil.rmtree(OUT, ignore_errors=True)
     for sub in ("images", "labels"):
         (OUT / "_all" / sub).mkdir(parents=True)
 
+    cables = approved_cables()
+    print(f"approved cable boxes: {sum(len(v) for v in cables.values())} in {len(cables)} photos")
     rows = []
     with ThreadPoolExecutor(12) as ex:
         rows += list(ex.map(lambda j: save(*j), open_images_jobs()))
-        rows += list(ex.map(lambda j: save(j[1], ade_boxes(j[2]), j[3], j[3]), ade_jobs()))
+        rows += list(ex.map(lambda j: save(j[1], ade_boxes(j[2]) + cables.get(str(j[1]), []), j[3], j[3]), ade_jobs()))
         rows += list(ex.map(lambda j: save(*j), rf_jobs()))
+        rows += list(ex.map(lambda j: save(*j), lvis_jobs(cables)))
     df = pd.DataFrame(rows)
 
     # near-duplicates across different groups (same perceptual hash): keep the first
@@ -179,10 +228,12 @@ def main():
     print(f"background images kept: {min(len(bg), keep_bg)} (dropped {len(drop_bg)})")
 
     # split by group so augmented copies never cross train/val; groups with augmented copies go to train
+    # Roboflow's own valid/test images go to val; everything else is split by a hash of its group.
     augmented = set(df.group[df.group.duplicated()])
-    df["split"] = ["train" if g in augmented
+    df["split"] = ["train" if g in augmented or h == "train"
+                   else "val" if h == "val"
                    else "val" if int(hashlib.md5(g.encode()).hexdigest(), 16) % 100 < VAL_FRACTION * 100
-                   else "train" for g in df.group]
+                   else "train" for g, h in zip(df.group, df.split_hint)]
 
     for sp in ("train", "val"):
         (OUT / "images" / sp).mkdir(parents=True)

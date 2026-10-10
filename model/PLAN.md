@@ -63,6 +63,13 @@ Everything in `model/`. The app never sees object labels, only the 10 hazard cod
 
 Dropped: Roboflow sink, soap, Door-handle, the junk class names in adrian/asdasd; ADE20K classes not listed.
 
+### Weak-label top-up (Sat ~3 AM)
+
+- **LVIS v1** (`scripts/download_lvis.py`, COCO photos, `data/lvis/`): 3,325 images. toilet_tissue -> toilet_roll_holder; bath_mat/doormat/runner -> rug; shoes, socks, toys, boxes, bags, newspapers -> floor_clutter only in home photos and not on a person; plus our other classes in those images.
+- **Roboflow messy homes:** `sasya-0ullp/messy-room-y5qsc`, `sds-first-workspace/messy-imgs` (loose items -> floor_clutter, furniture keeps its label), `superfish-5k9sp/robot-vacuum-cleaner` (its wire class is not in any exported version, so only glasses/mouse/nail -> floor_clutter).
+- **Split fix:** Roboflow's own valid/test images go to val (floor_clutter val went 4 -> 352). The pasted-wire cable set is train only.
+- **Cables (no real dataset exists):** `scripts/pseudo_label_cables.py` runs untrained Grounding DINO ("power cord. electrical cable. extension cord. charging cable.") over 4,791 ADE20K home photos + 2,500 LVIS home photos with outlets/lamps/TVs/laptops (`data/lvis/cable_pool/`). Candidates in `data/cable_search/candidates.json`; every box is checked by eye and only approved ones go to `data/cable_search/approved.json`, which `build_dataset.py` merges into those photos. Rejected Grounding DINO mistakes are mostly wall outlets, plugs and furniture edges.
+
 ## Phase 2: Build the dataset + test set (Sat 8 AM-1 PM, Mac, $0)
 
 Goal by 1 PM: one clean 13-label training set, a hand-labeled test set from a real home, frozen baseline prompts, real results to Anish.

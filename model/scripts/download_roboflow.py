@@ -30,6 +30,10 @@ DATASETS = {
     "ai-dataset-8dqwo/carpet-rjju3": "rug",
     "practicas-preprofesionales/toilet-paper-rv8hr": "toilet_roll_holder (product shots)",
     "ethan-tigrik-zgtmb/carpet-calpo": "rug (flat rug photos)",
+    # added Oct 10 to strengthen cable / floor_clutter (floor-level and messy real homes)
+    "superfish-5k9sp/robot-vacuum-cleaner": "cable (wire, thread), floor_clutter",
+    "sasya-0ullp/messy-room-y5qsc": "floor_clutter, chair, table",
+    "sds-first-workspace/messy-imgs": "floor_clutter, chair, table, bed, mirror",
 }
 
 rf = Roboflow(api_key=KEY)
