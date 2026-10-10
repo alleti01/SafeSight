@@ -1,0 +1,35 @@
+# Never commit footage of real homes or people
+*.mp4
+*.mov
+*.MOV
+*.avi
+*.heic
+*.HEIC
+model/data/
+model/runs/
+model/frames/
+
+# Weights
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+
+# Python
+__pycache__/
+.venv/
+venv/
+*.pyc
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+
+# Secrets and OS
+.env
+.env.*
+!.env.example
+.DS_Store
