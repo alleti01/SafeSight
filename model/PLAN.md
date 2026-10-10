@@ -24,9 +24,9 @@ Everything in `model/`. The app never sees object labels, only the 10 hazard cod
   | floor (Grounding DINO + SAM 2, untrained) | glare | `shiny_floor` |
   | floor (Grounding DINO + SAM 2, untrained) | busy texture/stripes | `patterned_floor` |
 
-- **Baseline for the fine-tune comparison:** untrained Grounding DINO with the same 14 labels as text prompts (prompt list frozen in Phase 2).
+- **Baseline for the fine-tune comparison:** untrained Grounding DINO with the same 13 labels as text prompts (prompt list frozen in Phase 2).
 - **Training data:** public datasets (Open Images V7, ADE20K, Roboflow Universe), credited in the README.
-- **Test set:** one room in our own home, filmed and labeled by us, never trained on. Demo video is our own too.
+- **Test set:** Abhi's whole home, filmed and labeled by us, never trained on ("a home it never saw"). Anish's home is a small training top-up for weak labels (cables, roll holders, clutter). Demo video is from Abhi's home.
 - **Compute:** Mac (M4 Max) for downloads, data prep and pipeline dev. Brev H100 (Nebius, $5.40/hr, stoppable) only for training, the live service and FLUX. Stop it whenever a phase ends.
 
 ## Phase 0: Setup (done)
@@ -63,27 +63,75 @@ Everything in `model/`. The app never sees object labels, only the 10 hazard cod
 
 Dropped: Roboflow sink, soap, Door-handle, the junk class names in adrian/asdasd; ADE20K classes not listed.
 
-## Phase 2: Build the dataset (Sat 8-11 AM, Mac, $0)
+## Phase 2: Build the dataset + test set (Sat 8 AM-1 PM, Mac, $0)
 
-1. Convert all sources to YOLO format, remap to the 14 labels
-2. Drop duplicates; train/val split
-3. Count images per label; flag weak labels
-4. Freeze the Grounding DINO prompt list (baseline)
-5. Film the test room + one demo video (~10 min)
-6. Label the test room in Roboflow; top up weak labels from Grounding DINO pre-labels (with Anish)
+Goal by 1 PM: one clean 13-label training set, a hand-labeled test set from a real home, frozen baseline prompts, real results to Anish.
 
-Done when: one `data.yaml`, a per-label count table, test room labeled.
-1 PM check-in: send Anish real results from 5 photos in contract format.
+### 2.1 Build the training set (Claude, Mac, ~1.5 hrs)
 
-## Phase 3: Baseline + fine-tune (Sat 12-6 PM, H100 ~4-5 hrs, ~$25)
+1. Open Images: boxes to YOLO; drop images with "group" boxes (one box over many objects)
+2. ADE20K: home scenes only; masks to boxes by splitting each class into connected pieces; drop specks
+3. Roboflow: outlines to boxes, remap to 13 labels, drop overhead power-line images from the cable set (checked by eye)
+4. Remove near-duplicate images across sources
+5. Train/val split 90/10; Roboflow augmented copies stay with their original (train only)
+6. Visual check: 30 random images with boxes drawn, plus a per-label count table
+
+Known gap: sources only box their own classes (stairs sets don't box chairs). Fixed by the missing-box pass at the start of Phase 3.
+
+### 2.2 Film (Abhi + Anish, ~40 min, 8:00 AM)
+
+- **Abhi's home = test set, never trained on.** One slow 1-minute video + 15-20 photos per room; every label must appear somewhere. Stage some hazards (dark mat on light floor, cable across walkway, clothes on floor, bin next to toilet) and some safe versions (light rug, tidy floor). One video doubles as the demo video.
+- **Anish's home = training top-up, ~100 photos:** mostly cables on floors (~40), toilet roll holders, floor clutter.
+- iPhone: Most Compatible format, 1080p, nobody in frame.
+
+### 2.3 Label (Abhi + Anish in Roboflow, ~2 hrs, 9:30-11:30)
+
+1. Claude turns videos into frames (1/sec, drop blurry and near-duplicate)
+2. Claude pre-labels all photos with Grounding DINO and uploads them to a Roboflow project
+3. Abhi fixes his home (~150-200 test images); Anish fixes his (~100)
+4. Claude pulls the corrected labels: Abhi's home -> `test/`, Anish's -> train
+
+### 2.4 Freeze baseline prompts (Claude, ~20 min)
+
+Try 2-3 wordings per label on 10 of Abhi's photos, save the best to `model/prompts.json`, commit, never change. These prompts are the "before" in the accuracy chart.
+
+### 2.5 Quick checks (Claude, ~15 min)
+
+- SAM 2 outlines on 5 objects (confirms the video-checkpoint warning is harmless)
+- First contrast numbers on one dark rug and one white toilet
+
+### 2.6 1 PM check-in
+
+5 of Abhi's photos -> Grounding DINO + SAM 2 + simple rules -> `contract.json` format with the 10 hazard codes -> Anish loads it in the gallery.
+
+### Timeline
+
+| Time | Abhi | Anish | Claude |
+|---|---|---|---|
+| 8:00-8:40 | Film whole home | Film ~100 top-up photos | 2.1 build training set |
+| 8:40-9:30 | AirDrop to Mac | Upload photos | Frames, pre-labels, Roboflow upload |
+| 9:30-11:30 | Fix test boxes | Fix top-up boxes | 2.4 prompts, 2.5 checks |
+| 11:30-12:30 | | | Pull labels, final dataset + counts |
+| 1:00 PM | Check-in | Check-in | 5-photo contract output |
+
+### Done when
+
+- [ ] `model/data/yolo/data.yaml` with train/val/test, 13 labels
+- [ ] Per-label count table for each split
+- [ ] Test set = Abhi's home only, hand-labeled, never trained on
+- [ ] `model/prompts.json` committed
+- [ ] Anish's gallery shows real results
+
+## Phase 3: Baseline + fine-tune (Sat 1-6 PM, H100 ~4-5 hrs, ~$25)
 
 1. Start Brev H100, copy the dataset up
-2. Baseline: untrained Grounding DINO on the test room, save scores
-3. Fine-tune YOLO11-m, 2-3 runs with different settings
-4. Score each run on the test room, keep the best
-5. Stop the H100
+2. Missing-box pass: Grounding DINO fills in our labels that a source never annotated (e.g. chairs in stairs datasets); high confidence only (~20 min, ~$2)
+3. Baseline: untrained Grounding DINO on the test set, save scores
+4. Fine-tune YOLO11-m, 2-3 runs with different settings
+5. Score each run on the test set, keep the best
+6. Stop the H100
 
-Done when: trained model beats baseline on the test room, numbers saved.
+Done when: trained model beats baseline on the test set, numbers saved.
 
 ## Phase 4: Analysis service (Sat 7 PM-1 AM, Mac then H100 ~3 hrs, ~$16)
 
