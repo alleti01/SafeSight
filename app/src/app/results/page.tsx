@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import HazardCard from "@/components/HazardCard";
+import HazardRow from "@/components/HazardRow";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Eyebrow } from "@/components/v5/Chrome";
 import PageShell, { BLACK_PILL, Panel } from "@/components/v4/PageShell";
@@ -194,12 +194,11 @@ function Gallery({
   const shown = inRoom.filter(
     (i) => !priority || i.hazard.severity === priority,
   );
-  const columns = Math.min(items.length, 4);
 
   return (
     <section
       aria-label="Flagged hazards"
-      className="flex w-full flex-col gap-5 px-5 sm:px-10"
+      className="flex w-full flex-col gap-5 px-5 pb-12 sm:px-10"
     >
       {items.length > 1 && (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-[var(--ss-line)] py-3">
@@ -276,20 +275,14 @@ function Gallery({
           </button>
         </p>
       ) : (
-        <div
-          className="grid gap-4 sm:gap-6"
-          style={{
-            gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, max(320px, calc((100% - ${columns - 1} * 24px) / ${columns}))), 1fr))`,
-          }}
-        >
+        <div className="flex flex-col gap-6">
           {shown.map((item, i) => (
-            <BlurFade key={item.key} delay={0.1 + i * 0.1}>
-              <HazardCard
+            <BlurFade key={item.key} delay={0.1 + Math.min(i, 3) * 0.1}>
+              <HazardRow
                 hazard={item.hazard}
                 frame={item.frame}
                 room={item.room}
                 number={items.indexOf(item) + 1}
-                total={items.length}
                 href={detailHref(item.jobId, item.hazard.hazard_id, isExample)}
               />
             </BlurFade>

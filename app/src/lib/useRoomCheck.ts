@@ -15,6 +15,7 @@ export function useRoomCheck() {
   const [error, setError] = useState("");
   const [working, setWorking] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [videoSeconds, setVideoSeconds] = useState<number | null>(null);
 
   // Other pages can link here with a room already picked: ?room=hallway#check
   useEffect(() => {
@@ -32,6 +33,19 @@ export function useRoomCheck() {
       return;
     }
     setFiles(chosen);
+    setVideoSeconds(null);
+    if (vids.length === 1) {
+      // The video's length, for the time estimate while it's checked.
+      const url = URL.createObjectURL(vids[0]);
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.onloadedmetadata = () => {
+        if (Number.isFinite(v.duration)) setVideoSeconds(v.duration);
+        URL.revokeObjectURL(url);
+      };
+      v.onerror = () => URL.revokeObjectURL(url);
+      v.src = url;
+    }
   }
 
   async function submit(e: React.FormEvent) {
@@ -53,5 +67,20 @@ export function useRoomCheck() {
     }
   }
 
-  return { room, setRoom, files, pick, error, working, progress, submit };
+  const estimate = estimateSeconds(files, videoSeconds);
+  return { room, setRoom, files, pick, error, working, progress, estimate, submit };
+}
+
+/**
+ * About how long a check takes, measured on our analysis service: about 1.8 s
+ * a photo; a video about 1.3x its length (one frame a second), plus about 3.5 s
+ * for each short clip of a finding (one per few seconds of video, up to 12).
+ */
+export function estimateSeconds(files: File[], videoSeconds: number | null): number | null {
+  if (files.length === 0) return null;
+  if (files.some((f) => f.type.startsWith("video/"))) {
+    if (videoSeconds === null) return null;
+    return Math.round(6 + videoSeconds * 1.3 + Math.min(12, Math.ceil(videoSeconds / 3)) * 3.5);
+  }
+  return Math.round(3 + files.length * 1.8);
 }

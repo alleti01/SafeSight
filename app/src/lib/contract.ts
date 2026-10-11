@@ -50,6 +50,8 @@ export interface Hazard {
   clip_start_s?: number;
   /** For videos: the box over the clip, [t, left, top, right, bottom, seen]; t in seconds, box as fractions, seen 0|1. */
   track?: [number, number, number, number, number, number][];
+  /** Light reflectance (0-100) of the object and of what's right around it. */
+  lrv?: { object: number; around: number };
 }
 
 export interface AnalyzeResult {

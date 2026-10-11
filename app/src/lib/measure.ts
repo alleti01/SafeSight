@@ -61,6 +61,8 @@ export function plainContrast(h: MeasuredHazard): PlainContrast | null {
         "Around it",
         `${almost ? "Almost the same color" : "Close in color"} to the wall and floor behind it. It may be easy to miss or bump into.`,
       );
+    case "door_blends_in":
+      return pair("The door", "The wall", `${almost ? "Almost the same color" : "Close in color"} to the wall around it. It may be hard to find.`);
     default:
       return null;
   }
@@ -170,6 +172,8 @@ export function colorCheck(h: MeasuredHazard): string | null {
       return m.delta_e < BLENDS_IN_BADLY ? "almost the same color" : "close in color";
     case "stair_edge_hard_to_see":
       return "step edges hard to see";
+    case "door_blends_in":
+      return m.delta_e < BLENDS_IN_BADLY ? "almost the same color" : "close in color";
     default:
       return null;
   }

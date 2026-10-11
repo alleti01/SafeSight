@@ -76,7 +76,8 @@ export default function HomePage() {
     }),
   ];
 
-  if (check.working) return <AnalysisProgress room={check.room} progress={check.progress} />;
+  if (check.working)
+    return <AnalysisProgress room={check.room} progress={check.progress} files={check.files} estimate={check.estimate} />;
 
   return (
     <div>

@@ -19,7 +19,7 @@ export interface Photo {
 export const fixLine = (type: HazardType) => {
   const cost = materials(FIX_PLANS[type]);
   if (cost[1] === 0) return "Free to fix";
-  return `Fix from ${money(cost)}${FIX_PLANS[type].free ? " · free step today" : ""}`;
+  return `Fix from ${money(cost)}${FIX_PLANS[type]?.free ? " · free step today" : ""}`;
 };
 
 // Size of an element, kept up to date.

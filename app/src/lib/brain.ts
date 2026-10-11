@@ -24,6 +24,10 @@ export interface Progress {
   step: Step;
   done: number;
   total: number;
+  /** The frame being checked right now (people already blurred). */
+  preview?: string;
+  /** How many things were found so far. */
+  found?: number;
 }
 
 const POLL_MS = 700;
@@ -36,6 +40,8 @@ interface JobStatus {
   total: number;
   result?: AnalyzeResult;
   detail?: string;
+  preview?: string;
+  found?: number;
 }
 
 export async function analyze(
@@ -53,7 +59,7 @@ export async function analyze(
 
   let job = await upload(form, onProgress);
   while (job.status === "queued" || job.status === "working") {
-    onProgress({ step: job.step, done: job.done, total: job.total });
+    onProgress({ step: job.step, done: job.done, total: job.total, preview: job.preview, found: job.found });
     await sleep(POLL_MS);
     const res = await fetch(`${BRAIN_URL}/analyze/${job.job_id}`);
     if (!res.ok) throw new Error(await errorText(res));

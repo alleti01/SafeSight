@@ -37,7 +37,7 @@ from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "scripts"))
-from analyze import SEV_COLOR, Analyzer, analyze_frame, merge, outline_png  # noqa: E402
+from analyze import SEV_COLOR, Analyzer, analyze_frame, lab_image, lrv_image, merge, outline_png, ring  # noqa: E402
 from blur_people import blur_people, load_model as load_blur  # noqa: E402
 from clips import make_clips  # noqa: E402
 from extract_frames import extract  # noqa: E402
@@ -132,8 +132,8 @@ class BadUpload(ValueError):
 
 
 def _run(job_id, room, tmp: Path, photo_data, video_path):
-    def progress(step, done, total):
-        _set(job_id, status="working", step=step, done=done, total=total)
+    def progress(step, done, total, **extra):
+        _set(job_id, status="working", step=step, done=done, total=total, **extra)
 
     try:
         _set(job_id, result=analyze_job(job_id, room, tmp, photo_data, video_path, progress), status="done")
@@ -182,19 +182,21 @@ def analyze_job(job_id, room, tmp: Path, photo_data, video_path, progress):
         an, blur = models()
         dev = 0 if an.dev == "cuda" else an.dev
 
-        # 2. people: blur everyone before anything is kept
+        # 2. people: blur everyone before anything is kept (each frame is written only once it's blurred)
         ims = []
         for k, p in enumerate(paths):
             progress("people", k, len(paths))
             img, _ = blur_people(np.array(Image.open(p).convert("RGB")), blur, dev)
             im = Image.fromarray(img)
             im.thumbnail((MAX_SIDE, MAX_SIDE))
+            im.save(out / "frames" / f"f{k + 1:02d}.jpg", quality=90)
             ims.append(im)
 
-        # 3. objects: fine-tuned detector + outlines, per frame
+        # 3. objects: fine-tuned detector + outlines, per frame (the website shows the frame being checked)
         per_frame = []
         for k, im in enumerate(ims):
-            progress("objects", k, len(ims))
+            progress("objects", k, len(ims), preview=f"{prefix}/frames/f{k + 1:02d}.jpg",
+                     found=len(merge(per_frame)) if per_frame else 0)
             hs = analyze_frame(an, im, room)
             for h in hs:
                 h["video"], h["frame_idx"] = ("video", k) if times else (None, k)
@@ -203,10 +205,10 @@ def analyze_job(job_id, room, tmp: Path, photo_data, video_path, progress):
     # 4. contrast verdicts are in; merge repeats of the same thing across frames, then write the results
     progress("contrast", 0, 1)
     hazards = merge(per_frame)
+    progress("contrast", 0, 1, found=len(hazards))
     frames = []
     for k, im in enumerate(ims):  # every checked frame (blurred) is kept so the app can show what was looked at
         fid = f"f{k + 1:02d}"
-        im.save(out / "frames" / f"{fid}.jpg", quality=90)
         f = {"frame_id": fid, "image_url": f"{prefix}/frames/{fid}.jpg", "width": im.size[0], "height": im.size[1]}
         if times:
             f["time_s"] = times[k]
@@ -220,7 +222,7 @@ def analyze_job(job_id, room, tmp: Path, photo_data, video_path, progress):
                 "frame_id": f"f{k + 1:02d}", "box": [int(round(v)) for v in h["box"]],
                 "outline_url": f"{prefix}/outlines/{hid}.png",
                 # additions (shared/README.md is add-only): what the object is, the measured evidence, and when
-                "object": h["object"], "evidence": h["evidence"]}
+                "object": h["object"], "evidence": h["evidence"], **measure(ims[k], h["mask"])}
         if times:
             item["time_s"] = times[k]
         out_h.append(item)
@@ -228,11 +230,30 @@ def analyze_job(job_id, room, tmp: Path, photo_data, video_path, progress):
     if video_path is not None and out_h:
         with _models_lock:
             make_clips(video_path, out_h, frames, out / "clips", f"{prefix}/clips", an,
-                       lambda img: blur_people(img, blur, dev)[0], dev, lambda d, t: progress("contrast", d, t))
+                       lambda img: blur_people(img, blur, dev)[0], dev, lambda d, t: progress("contrast", d, t, found=len(out_h)))
     progress("contrast", 1, 1)
     result = {"job_id": job_id, "room": room, "frames": frames, "hazards": out_h}
     json.dump(result, open(out / "result.json", "w"), indent=2)
     return result
+
+
+def _hex(rgb):
+    return "#" + "".join(f"{int(round(v)):02x}" for v in rgb)
+
+
+def measure(im, mask):
+    """The object's color and lightness next to its surroundings', for the website's swatches.
+    lrv: light reflectance (0-100) as the design guides use it; measure: CIE L* and delta E (76)."""
+    rgb = np.array(im)
+    around = ring(mask)
+    if mask.sum() < 50 or around.sum() < 50:
+        return {}
+    lab, lrv = lab_image(rgb), lrv_image(rgb)
+    lin, lout = np.median(lab[mask], axis=0), np.median(lab[around], axis=0)
+    return {"colors": {"inside": _hex(np.median(rgb[mask], axis=0)), "around": _hex(np.median(rgb[around], axis=0))},
+            "lrv": {"object": round(float(np.median(lrv[mask])), 1), "around": round(float(np.median(lrv[around])), 1)},
+            "measure": {"lightness": round(float(lin[0]), 1), "around_lightness": round(float(lout[0]), 1),
+                        "delta_e": round(float(np.linalg.norm(lin - lout)), 1)}}
 
 
 def _fail(job_id, detail):
@@ -249,6 +270,9 @@ def _public(job_id):
     job = jobs[job_id]
     out = {"job_id": job_id, "status": job["status"], "step": job.get("step"),
            "done": job.get("done", 0), "total": job.get("total", 0)}
+    for k in ("preview", "found"):  # the frame being checked and how many things were found so far
+        if k in job:
+            out[k] = job[k]
     if job["status"] == "done":
         out["result"] = job["result"]
     if job["status"] == "failed":
