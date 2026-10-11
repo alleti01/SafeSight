@@ -1,0 +1,21 @@
+{
+  "base": "weights/yolov8l-worldv2.pt",
+  "per_label": {
+    "rug": "runs/run3_world/weights/best.pt",
+    "toilet": "weights/yolov8l-worldv2.pt",
+    "toilet_roll_holder": "weights/yolov8l-worldv2.pt",
+    "towel": "runs/run5_world/weights/best.pt",
+    "mirror": "weights/yolov8l-worldv2.pt",
+    "stairs": "runs/run5_world/weights/best.pt",
+    "cable": "runs/run3_world/weights/best.pt",
+    "floor_clutter": "runs/run3_y11/weights/best.pt",
+    "bin": "runs/run5_world/weights/best.pt",
+    "bed": "weights/yolov8l-worldv2.pt",
+    "sofa": "runs/run3_world/weights/best.pt",
+    "chair": "weights/yolov8l-worldv2.pt",
+    "table": "runs/run5_world/weights/best.pt",
+    "door": "runs/run5_world/weights/best.pt",
+    "window": "runs/run3_world/weights/best.pt",
+    "glass_door": "runs/run3_y11/weights/best.pt"
+  }
+}
