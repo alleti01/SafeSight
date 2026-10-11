@@ -38,7 +38,7 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "scripts"))
 from analyze import SEV_COLOR, Analyzer, analyze_frame, lab_image, lrv_image, merge, outline_png, ring  # noqa: E402
-from blur_people import blur_people, load_model as load_blur  # noqa: E402
+from blur_people import blur_people, load_model as load_blur, person_boxes  # noqa: E402
 from clips import make_clips  # noqa: E402
 from extract_frames import extract  # noqa: E402
 
@@ -245,7 +245,7 @@ def analyze_job(job_id, room, tmp: Path, photo_data, video_path, progress):
         try:
             with _models_lock:
                 make_clips(video_path, out_h, frames, out / "clips", f"{prefix}/clips", an,
-                           lambda img: blur_people(img, blur, dev)[0], dev,
+                           lambda img: person_boxes(img, blur, dev), dev,
                            lambda d, t: progress("contrast", d, t, found=len(out_h)))
         except Exception:  # clips are a bonus: without them the website shows the best photo of each finding
             log.exception("clips for %s failed", job_id)

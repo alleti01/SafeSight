@@ -16,6 +16,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from blur_people import blur_boxes, steady_boxes
+
 CLIP_BEFORE, CLIP_AFTER = 1.0, 2.0
 CLIP_FPS = 15
 CLIP_SIDE = 960          # long side of the clip, pixels
@@ -90,8 +92,9 @@ def _smooth(track, keys, a=0.5):
     return out
 
 
-def make_clips(video, hazards, frames, out_dir, url_prefix, an, blur, dev, progress=lambda d, t: None):
-    """hazards: result hazards (with time_s, object, box, frame_id). Adds clip_url + track to each, in place."""
+def make_clips(video, hazards, frames, out_dir, url_prefix, an, people, dev, progress=lambda d, t: None):
+    """hazards: result hazards (with time_s, object, box, frame_id). Adds clip_url + track to each, in place.
+    people(img) -> person boxes in one frame; they're steadied across the clip before blurring."""
     total = duration(video)
     by_frame = {f["frame_id"]: f for f in frames}
     moments = {}
@@ -113,9 +116,13 @@ def make_clips(video, hazards, frames, out_dir, url_prefix, an, blur, dev, progr
             paths = _decode(video, start, length, raw)
             if not paths:
                 continue
+            # blur everyone before anything is written to the job; boxes are followed across frames so the blur
+            # glides with a person and never blinks off for a frame
+            raw_ims = [np.array(Image.open(p).convert("RGB")) for p in paths]
+            steady = steady_boxes([people(img) for img in raw_ims])
             ims = []
-            for k, p in enumerate(paths):  # blur everyone before anything is written to the job
-                img = blur(np.array(Image.open(p).convert("RGB")))
+            for k, (img, boxes) in enumerate(zip(raw_ims, steady)):
+                img = blur_boxes(img, boxes)
                 ims.append(img)
                 Image.fromarray(img).save(done / f"{k + 1:04d}.jpg", quality=88)
             H, W = ims[0].shape[:2]
