@@ -29,7 +29,6 @@ export const NAV = [
   { href: "/#home", label: "What we look for" },
   { href: "/#how", label: "How it works" },
   { href: "/#fixes", label: "What you get" },
-  { href: "/#stores", label: "Where to buy" },
 ];
 
 // The header bar. On the home page it hides over the film and slides in once
