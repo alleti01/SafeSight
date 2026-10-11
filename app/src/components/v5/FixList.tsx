@@ -112,6 +112,12 @@ const POINTS: Record<HazardType, string> = {
   stair_edge_hard_to_see: "Step edge",
   floor_clutter: "Shoes & cords",
   toilet_lookalike: "Looks like a toilet",
+  glass_door: "Clear glass",
+  door_blends_in: "Door blends in",
+  window_reflection: "Dark window",
+  floor_transition: "Floor color change",
+  floor_wall_blend: "Floor meets wall",
+  patterned_wall: "Busy wall",
 };
 
 // A closed column's label: large, reading bottom to top, sized to fill the

@@ -115,11 +115,61 @@ export const FIX_PLANS: Record<HazardType, FixPlan> = {
     diyMinutes: [1, 2],
     other: [],
   },
+  glass_door: {
+    fix: "Put window decals across the glass at eye level",
+    items: [{ name: "Window decals or frosted film strip", low: 8, high: 15, shop: "window decals glass door" }],
+    diyMinutes: [10, 20],
+    other: [SHIPPING],
+  },
+  door_blends_in: {
+    free: "Hang a simple picture sign on the bathroom door at eye level.",
+    fix: "Paint the door or its frame a contrasting color",
+    items: [
+      { name: "Quart of door paint", low: 15, high: 25, shop: "interior door paint quart" },
+      { name: "Brush, roller and tape", low: 8, high: 15, shop: "paint brush roller kit" },
+    ],
+    diyMinutes: [90, 180],
+    handymanHours: [2, 3],
+    other: ["Two coats are usually needed; allow drying time between them."],
+  },
+  window_reflection: {
+    free: "Close the curtains or blinds as it gets dark.",
+    fix: "Hang curtains or a blind if the window has none",
+    items: [{ name: "Curtain panel (per window)", low: 10, high: 25, shop: "blackout curtain panel" }],
+    diyMinutes: [10, 20],
+    handymanHours: [0.5, 1],
+    other: ["If there's no curtain rod, add a tension rod or have one fitted.", SHIPPING],
+  },
+  floor_transition: {
+    fix: "Use a flat threshold strip close to the floor's color",
+    items: [{ name: "Threshold transition strip", low: 10, high: 20, shop: "floor transition strip" }],
+    diyMinutes: [15, 30],
+    handymanHours: [0.5, 1],
+    other: ["Re-flooring so both areas match is a bigger job: get local quotes."],
+  },
+  floor_wall_blend: {
+    fix: "Add a contrasting skirting strip along the bottom of the wall",
+    items: [{ name: "Peel-and-stick vinyl baseboard, 20 ft", low: 15, high: 30, shop: "peel and stick vinyl baseboard" }],
+    diyMinutes: [30, 60],
+    handymanHours: [1, 2],
+    other: [SHIPPING],
+  },
+  patterned_wall: {
+    fix: "Paint the wall a plain, light color",
+    items: [
+      { name: "Gallon of wall paint", low: 25, high: 40, shop: "interior wall paint gallon" },
+      { name: "Brush, roller and tape", low: 8, high: 15, shop: "paint brush roller kit" },
+    ],
+    diyMinutes: [180, 300],
+    handymanHours: [3, 5],
+    other: ["Wallpaper may need stripping first, which adds time."],
+  },
 };
 
 export type Range = [number, number];
 
-export function materials(plan: FixPlan): Range {
+export function materials(plan: FixPlan | undefined): Range {
+  if (!plan) return [0, 0];
   return plan.items.reduce<Range>(([lo, hi], i) => [lo + i.low, hi + i.high], [0, 0]);
 }
 

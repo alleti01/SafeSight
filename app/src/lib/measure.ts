@@ -105,10 +105,16 @@ const OBJECT: Record<HazardType, string> = {
   stair_edge_hard_to_see: "a step",
   floor_clutter: "clutter on the floor",
   toilet_lookalike: "something that looks like a toilet",
+  glass_door: "a glass door",
+  door_blends_in: "a door",
+  window_reflection: "a window",
+  floor_transition: "a change in the floor",
+  floor_wall_blend: "where the floor meets the wall",
+  patterned_wall: "a patterned wall",
 };
 
 /** "a rug", "a mirror", "furniture": what the detector says the object is. */
-export const objectName = (type: HazardType) => OBJECT[type];
+export const objectName = (type: HazardType) => OBJECT[type] ?? "this";
 
 export interface Confidence {
   level: "High" | "Medium" | "Low";

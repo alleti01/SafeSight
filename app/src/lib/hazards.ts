@@ -63,7 +63,48 @@ export const HAZARD_TEXT: Record<HazardType, HazardText> = {
     why: "A bin, basket or storage box in the bathroom may be mistaken for the toilet.",
     fix: "Move it out of the bathroom.",
   },
+  glass_door: {
+    name: "Clear glass door",
+    why: "Clear glass is hard to see, so someone may walk into it or not realize the door is closed.",
+    fix: "Put stickers or a frosted strip across the glass at eye level.",
+  },
+  door_blends_in: {
+    name: "Door that blends into the wall",
+    why: "When a door is the same color as the wall around it, it's harder to find, especially the bathroom door at night.",
+    fix: "Paint the door or its frame a contrasting color, or add a clear picture sign at eye level.",
+  },
+  window_reflection: {
+    name: "Window that turns into a mirror at night",
+    why: "After dark, an uncovered window reflects the room. The reflection may look like someone outside looking in.",
+    fix: "Close the curtains or blinds as it gets dark.",
+  },
+  floor_transition: {
+    name: "Floor changes color",
+    why: "A sharp change in floor color or brightness between areas can look like a step, so someone may stop or step up.",
+    fix: "Where you can, keep the floor the same tone between areas, or use a flat, same-tone threshold strip.",
+  },
+  floor_wall_blend: {
+    name: "Floor and wall blend together",
+    why: "When the floor and walls are a similar shade, it's harder to see where the floor ends and the walls begin.",
+    fix: "Add a contrasting skirting board or a strip of tape along the bottom of the wall.",
+  },
+  patterned_wall: {
+    name: "Busy pattern on the wall",
+    why: "Strong patterns on walls can be confusing, and some people may see shapes or creatures in them.",
+    fix: "Paint the wall a plain color or cover the busiest part.",
+  },
 };
+
+/** Text for any hazard type, including ones newer than this app. */
+export function hazardText(type: string): HazardText {
+  return (
+    (HAZARD_TEXT as Record<string, HazardText>)[type] ?? {
+      name: type.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
+      why: "This may make the room harder to understand or move around safely.",
+      fix: "See the Alzheimer's Society guide for ideas.",
+    }
+  );
+}
 
 export const SEVERITY_LABEL: Record<Severity, string> = {
   high: "Look at this first",
