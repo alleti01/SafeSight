@@ -1,0 +1,18 @@
+# Just what the analysis service needs (service.py), at the versions it was tested with.
+# Python 3.11. requirements.txt also has the training and data tools.
+torch==2.14.1
+torchvision==0.29.1
+transformers==5.19.0   # Grounding DINO and SAM 2.1
+accelerate==1.15.0
+ultralytics==8.4.175   # YOLO-World and YOLO11
+clip @ git+https://github.com/ultralytics/CLIP.git   # YOLO-World's text prompts
+opencv-python==5.0.0.93
+pillow==12.3.0
+numpy==2.4.6
+scipy==1.17.1
+imagehash==4.3.2
+fastapi==0.143.0
+uvicorn==0.54.0
+python-multipart==0.0.32
+huggingface_hub==2.2.0
+python-dotenv==1.2.4   # pulled in by evaluate.py's helpers

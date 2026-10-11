@@ -54,8 +54,11 @@ Scored on two homes the model never trained on: Abhi's house (211 frames, 613 ha
 
 ## Run it
 
+Needs Python 3.11, ffmpeg and the GitHub CLI (`brew install python@3.11 ffmpeg gh && gh auth login`). The weights aren't in git: `setup.sh` installs the Python packages and downloads the fine-tuned detector from this repo's `model-v6` release, and Grounding DINO and SAM 2.1 from Hugging Face (about 2.5 GB in all, once).
+
 ```
-# analysis service (needs the model weights in model/weights and model/runs, not in git)
+# analysis service
+model/scripts/setup.sh
 cd model && DETECTOR=combo .venv/bin/uvicorn service:app --port 8000
 # or, with a public link for a hosted website:
 model/scripts/serve.sh
