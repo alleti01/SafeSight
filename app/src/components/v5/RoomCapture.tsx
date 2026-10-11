@@ -241,18 +241,22 @@ export default function RoomCapture({
       v.removeEventListener("loadedmetadata", measure);
     };
   }, [stream]);
+  // Where a mark goes over the video (which covers the viewfinder, so its
+  // edges may be cropped off). Kept just inside the picture, so a thing at the
+  // edge still shows its frame and name; marks that are mostly off it are left out.
   const place = ([l, t, r, b]: LiveHazard["box"]) => {
     const { cw, ch, vw, vh } = view;
     if (!cw || !vw) return null;
     const s = Math.max(cw / vw, ch / vh);
     const dx = (cw - vw * s) / 2;
     const dy = (ch - vh * s) / 2;
-    return {
-      left: dx + l * vw * s,
-      top: dy + t * vh * s,
-      width: (r - l) * vw * s,
-      height: (b - t) * vh * s,
-    };
+    const edge = 8;
+    const x0 = Math.max(edge, dx + l * vw * s);
+    const y0 = Math.max(edge, dy + t * vh * s);
+    const x1 = Math.min(cw - edge, dx + r * vw * s);
+    const y1 = Math.min(ch - edge, dy + b * vh * s);
+    if (x1 - x0 < 40 || y1 - y0 < 40) return null;
+    return { left: x0, top: y0, width: x1 - x0, height: y1 - y0 };
   };
 
   // The timer, stopping on its own at the limit.
@@ -296,6 +300,20 @@ export default function RoomCapture({
     setMode(m);
   };
   const scanning = mode === "live" && !!stream;
+  // What's marked on screen (things cropped off the picture aren't counted).
+  const seen = marks.filter((m) => place(m.box)).length;
+
+  // On phones the camera fills the screen while scanning; the page behind it
+  // stays put.
+  useEffect(() => {
+    if (!scanning || !window.matchMedia("(max-width: 767px)").matches) return;
+    const html = document.documentElement;
+    const before = html.style.overflow;
+    html.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = before;
+    };
+  }, [scanning]);
 
   return (
     <form
@@ -388,7 +406,7 @@ export default function RoomCapture({
 
       {/* The panel: the live camera, what you've added, or how each way works. */}
       <div
-        className={`relative overflow-hidden rounded-[18px] border border-[var(--ss-line)] transition-shadow ${scanning ? "bg-[#2b2520]" : "bg-[var(--ss-sheet)]"} ${over ? "ring-4 ring-[var(--ss-accent)]" : ""}`}
+        className={`relative overflow-hidden rounded-[18px] border border-[var(--ss-line)] transition-shadow ${scanning ? "bg-[#2b2520] max-md:fixed max-md:inset-0 max-md:z-[70] max-md:rounded-none max-md:border-0" : "bg-[var(--ss-sheet)]"} ${over ? "ring-4 ring-[var(--ss-accent)]" : ""}`}
         onDragOver={(e) => {
           e.preventDefault();
           setOver(true);
@@ -403,7 +421,7 @@ export default function RoomCapture({
         {scanning ? (
           <div
             ref={stage}
-            className="relative aspect-[4/3] w-full sm:aspect-video lg:aspect-[21/9]"
+            className="relative aspect-[4/3] w-full sm:aspect-video lg:aspect-[21/9] max-md:h-full max-md:aspect-auto!"
           >
             <video
               ref={live}
@@ -447,7 +465,7 @@ export default function RoomCapture({
               );
             })}
             {/* While nothing's found yet, a slow line sweeps the picture. */}
-            {!USING_FAKE && marks.length === 0 && (
+            {!USING_FAKE && seen === 0 && (
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px animate-[scan_2.6s_ease-in-out_infinite] bg-[#f3e6d3]/70 shadow-[0_0_14px_2px_rgba(243,230,211,0.45)] motion-reduce:hidden"
@@ -455,17 +473,17 @@ export default function RoomCapture({
             )}
             <span
               role="status"
-              className="absolute top-8 left-10 z-20 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-[13px] text-white backdrop-blur-md max-sm:top-7 max-sm:left-8"
+              className="absolute top-8 left-10 z-20 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-[13px] text-white backdrop-blur-md max-md:top-[calc(env(safe-area-inset-top)+28px)] max-md:left-8"
             >
               {USING_FAKE ? (
                 "Live marking needs the SafeSight service"
-              ) : marks.length ? (
+              ) : seen ? (
                 <>
                   <span
                     aria-hidden="true"
                     className="size-2 rounded-full bg-[#e8796c]"
                   />
-                  {marks.length} thing{marks.length === 1 ? "" : "s"} may be a
+                  {seen} thing{seen === 1 ? "" : "s"} may be a
                   problem
                 </>
               ) : (
@@ -482,12 +500,12 @@ export default function RoomCapture({
               type="button"
               onClick={cancel}
               aria-label="Close the camera"
-              className="absolute top-8 right-10 z-20 grid size-9 place-items-center rounded-full bg-black/50 text-[18px] text-white hover:bg-black/70"
+              className="absolute top-8 right-10 z-20 grid size-9 place-items-center rounded-full bg-black/50 text-[18px] text-white hover:bg-black/70 max-md:top-[calc(env(safe-area-inset-top)+24px)] max-md:right-8 max-md:size-11"
             >
               ×
             </button>
             {recording && (
-              <span className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/55 px-3 py-1 text-[13px] text-white">
+              <span className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/55 px-3 py-1 text-[13px] text-white max-md:bottom-[calc(env(safe-area-inset-bottom)+104px)]">
                 <span
                   aria-hidden="true"
                   className="size-2 animate-pulse rounded-full bg-[#e8796c]"
@@ -496,6 +514,14 @@ export default function RoomCapture({
                 {String(seconds % 60).padStart(2, "0")}
               </span>
             )}
+            {/* Phones: the camera fills the screen, so finishing is here, in reach of a thumb. */}
+            <button
+              type="button"
+              onClick={stopRecording}
+              className="absolute inset-x-6 bottom-[calc(env(safe-area-inset-bottom)+28px)] z-20 flex items-center justify-center gap-2 rounded-[14px] bg-white py-4 text-[16px] font-medium text-[var(--ss-ink)] shadow-[0_8px_24px_rgba(0,0,0,0.3)] md:hidden"
+            >
+              Finish scan <span aria-hidden="true">→</span>
+            </button>
           </div>
         ) : files.length > 0 ? (
           <div className="p-5 sm:p-6">

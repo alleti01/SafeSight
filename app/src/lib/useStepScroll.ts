@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMotionValueEvent, useReducedMotion, useScroll } from "motion/react";
 
-// Wide screens (1024px and up) pin a stepped section; narrow ones show a list
-// you tap.
+// Wide screens (1024px and up) also get one step per wheel flick.
 function useWide() {
   const [wide, setWide] = useState(false);
   useEffect(() => {
@@ -18,15 +17,14 @@ function useWide() {
 }
 
 /**
- * A section that pins on wide screens and moves through `count` steps as you
- * scroll, one step per scroll gesture. Put `track` on a tall wrapper (its
- * height sets how much scrolling the steps take) with a sticky child.
+ * A pinned section that moves through `count` steps as you scroll. Put
+ * `track` on a tall wrapper (its height sets how much scrolling the steps
+ * take) with a sticky child.
  *
- * - `active` is the current step: from scroll position on wide screens, from
- *   `pick` on narrow ones.
- * - `pick(i)` scrolls to step i (wide) or shows it (narrow).
+ * - `active` is the current step, from the scroll position.
+ * - `pick(i)` scrolls to step i.
  *
- * While pinned, a wheel or trackpad flick moves one step and the rest of that
+ * On wide screens, while pinned, a wheel or trackpad flick moves one step and the rest of that
  * gesture's momentum is swallowed; a gesture that scrolls in from outside
  * stops on the first (or last) step. Past either end the page scrolls on.
  * The scrollbar and keyboard still work, by position.
@@ -37,7 +35,6 @@ export function useStepScroll(count: number) {
   const track = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: track, offset: ["start start", "end end"] });
   const [scrolled, setScrolled] = useState(0);
-  const [picked, setPicked] = useState(0);
 
   useMotionValueEvent(scrollYProgress, "change", (v) => setScrolled(Math.min(count - 1, Math.max(0, Math.floor(v * count)))));
 
@@ -81,5 +78,5 @@ export function useStepScroll(count: number) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wide, reduce, count]);
 
-  return { track, wide, active: wide ? scrolled : picked, pick: (i: number) => (wide ? goTo(i) : setPicked(i)) };
+  return { track, wide, active: scrolled, pick: goTo };
 }

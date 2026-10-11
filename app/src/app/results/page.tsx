@@ -304,9 +304,10 @@ function Chips({
     <div
       role="group"
       aria-label={label}
-      className="flex flex-wrap items-center gap-2"
+      // Phones: one row that scrolls sideways, edge to edge.
+      className="flex flex-wrap items-center gap-2 max-sm:-mx-5 max-sm:w-[calc(100%+40px)] max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:px-5 max-sm:[scrollbar-width:none]"
     >
-      <span className="mr-1 text-[13px] font-medium text-[var(--ss-ink-3)]">
+      <span className="mr-1 shrink-0 text-[13px] font-medium text-[var(--ss-ink-3)]">
         {label}
       </span>
       {children}
@@ -330,7 +331,7 @@ function Chip({
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[14px] transition-colors ${
+      className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-[14px] whitespace-nowrap transition-colors ${
         on
           ? "border-[var(--ss-ink)] bg-[var(--ss-ink)] text-white"
           : "border-[var(--ss-line)] bg-white text-[var(--ss-ink-2)] hover:border-[var(--ss-ink)]/40 hover:text-[var(--ss-ink)]"
