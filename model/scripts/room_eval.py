@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).parent))
-from evaluate import iou  # noqa: E402
+from evaluate import EVAL_DIR, iou  # noqa: E402
 
 CONF = 0.30
 
@@ -22,14 +22,14 @@ def video(f):
 
 
 def main():
-    gt = json.load(open(ROOT / "data" / "eval" / "test_gt.json"))
+    gt = json.load(open(EVAL_DIR / "test_gt.json"))
     vids = defaultdict(list)
     for f in gt:
         vids[video(f)].append(f)
     labels = sorted({l for v in gt.values() for l, _ in v})
     rows = {}
     for name in sys.argv[1:]:
-        pr = json.load(open(ROOT / "data" / "eval" / f"preds_{name}.json"))
+        pr = json.load(open(EVAL_DIR / f"preds_{name}.json"))
         preds, known = pr["preds"], set(pr["known"])
         per = {}
         for l in labels:

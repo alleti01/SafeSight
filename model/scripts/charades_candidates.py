@@ -34,18 +34,21 @@ def candidates():
     ev.FRAMES = FR
     ev.PROMPTS["eval_threshold"] = 0.30
     allp = {f: [] for f in files}
-    for preds in (ev.predict_yolo(ROOT / "runs/run5_world/weights/best.pt", files)[0],
-                  ev.predict_yolo(ROOT / "weights/yolov8l-worldv2.pt", files)[0],
-                  ev.predict_gdino(files)[0]):
+    for mi, preds in enumerate((ev.predict_yolo(ROOT / "runs/run5_world/weights/best.pt", files)[0],
+                                ev.predict_yolo(ROOT / "weights/yolov8l-worldv2.pt", files)[0],
+                                ev.predict_gdino(files)[0])):
         for f in files:
-            allp[f] += [(l, b, s) for l, b, s in preds[f] if s >= 0.30]
+            allp[f] += [(l, b, s, mi) for l, b, s in preds[f] if s >= 0.30]
     out = {}
     for f in files:
-        kept = []
-        for l, b, s in sorted(allp[f], key=lambda x: -x[2]):
-            if all(not (l == k[0] and ev.iou(b, k[1]) > 0.55) for k in kept):
-                kept.append((l, b, s))
-        out[f] = [[l, *b, round(s, 2)] for l, b, s in kept]
+        kept = []  # [label, box, score, set of models that found it]
+        for l, b, s, mi in sorted(allp[f], key=lambda x: -x[2]):
+            hit = next((k for k in kept if l == k[0] and ev.iou(b, k[1]) > 0.55), None)
+            if hit:
+                hit[3].add(mi)
+            else:
+                kept.append([l, b, s, {mi}])
+        out[f] = [[l, *b, round(s, 2), len(m)] for l, b, s, m in kept]
     json.dump(out, open(C / "hand_candidates.json", "w"))
     print(len(out), "frames,", sum(len(v) for v in out.values()), "candidate boxes")
 
@@ -66,7 +69,9 @@ def sheets():
             d = ImageDraw.Draw(im)
             fs = max(22, W // 18)   # scale labels to the frame so they stay readable after shrinking
             F = ImageFont.load_default(size=fs)
-            for n, (lab, x0, y0, x1, y1, sc) in enumerate(m[f]):
+            for n, (lab, x0, y0, x1, y1, sc, *_) in enumerate(m[f]):
+                if os.environ.get("CAND_SKIP_SMALL") and lab in ("floor_clutter", "cable"):
+                    continue
                 col = [(255, 40, 40), (30, 120, 255), (20, 170, 60), (230, 140, 0)][n % 4]
                 d.rectangle([x0, y0, x1, y1], outline=col, width=max(3, W // 200))
                 tag = f"{n}{SHORT[lab]}"
@@ -91,17 +96,27 @@ def write():
     for line in open(C / os.environ.get("CAND_REVIEW", "review_chr.txt")):
         if line.startswith("#") or not line.strip():
             continue
-        i, keep, rel = [p.strip() for p in line.split("|")]
+        parts = [p.strip() for p in line.split("|")]
+        i, keep, rel = parts[:3]
+        adds = parts[3] if len(parts) > 3 else "-"  # "label x0 y0 x1 y1; ..." boxes the models missed
         f = files[int(i)]
         keep = {int(x) for x in keep.split(",")} if keep != "-" else set()
         rel = dict(x.split("=") for x in rel.split(",")) if rel != "-" else {}
         im = Image.open(FR / f)
         W, H = im.size
         lines = []
-        for n, (lab, x0, y0, x1, y1, sc) in enumerate(m[f]):
-            if n in keep:
+        for n, (lab, x0, y0, x1, y1, sc, *votes) in enumerate(m[f]):
+            auto = (os.environ.get("CAND_AUTO_SMALL") and lab in ("floor_clutter", "cable")
+                    and votes and votes[0] >= 2 and y1 >= 0.45 * H)
+            if n in keep or auto:
                 lab = rel.get(str(n), lab)
                 lines.append(f"{ev.LABELS16.index(lab)} {(x0 + x1) / 2 / W:.6f} {(y0 + y1) / 2 / H:.6f} {(x1 - x0) / W:.6f} {(y1 - y0) / H:.6f}")
+        sc_add = W / float(os.environ.get("CAND_ADD_WIDTH", W))  # adds may be drawn on a resized review sheet
+        for a in ([] if adds == "-" else adds.split(";")):
+            lab, *xy = a.split()
+            x0, y0, x1, y1 = (float(v) * sc_add for v in xy)
+            x0, x1, y0, y1 = max(0, x0), min(W, x1), max(0, y0), min(H, y1)
+            lines.append(f"{ev.LABELS16.index(lab)} {(x0 + x1) / 2 / W:.6f} {(y0 + y1) / 2 / H:.6f} {(x1 - x0) / W:.6f} {(y1 - y0) / H:.6f}")
         im.save(I / f"{PREFIX}__{f}", quality=92)
         (L / f"{PREFIX}__{Path(f).stem}.txt").write_text("\n".join(lines))
         n_img += 1

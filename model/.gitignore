@@ -19,3 +19,7 @@ weights/
 # Environment and secrets
 .venv/
 .env
+
+# Accuracy chart is a plot, not a home photo
+!results/
+!results/*.png

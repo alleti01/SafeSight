@@ -22,7 +22,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).parent))
 from labelstudio_setup import access_token, api  # noqa: E402
 
-FRAMES = ROOT / "data" / "frames" / "home_test"
+# EVAL_SET=home2 scores the second held-out test home (a friend's house, never trained on) instead of Abhi's home
+import os  # noqa: E402
+HOME2 = os.environ.get("EVAL_SET") == "home2"
+FRAMES = ROOT / "data" / "frames" / ("friends4" if HOME2 else "home_test")
+EVAL_DIR = ROOT / "data" / "eval" / ("home2" if HOME2 else "")
 PROMPTS = json.load(open(ROOT / "prompts.json"))  # frozen baseline prompts
 LABELS16 = ["rug", "toilet", "toilet_roll_holder", "towel", "mirror", "stairs", "cable", "floor_clutter", "bin",
             "bed", "sofa", "chair", "table", "door", "window", "glass_door"]
@@ -33,7 +37,7 @@ IOU = 0.5
 
 def ground_truth():
     """{file: [(label, [x0, y0, x1, y1])]} from completed annotations (frozen snapshot if present)."""
-    snap = ROOT / "data" / "eval" / "test_gt.json"
+    snap = EVAL_DIR / "test_gt.json"
     if snap.exists():
         return {f: [tuple(b) for b in v] for f, v in json.load(open(snap)).items()}
     tok = access_token()
@@ -164,7 +168,7 @@ def average_precision(gt, preds, label):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", nargs="+", default=["gdino", "runs/run1/weights/best.pt", "runs/run2/weights/best.pt"])
-    ap.add_argument("--out", default="data/eval")
+    ap.add_argument("--out", default=str(EVAL_DIR.relative_to(ROOT)))
     ap.add_argument("--iou", type=float, default=0.5)
     a = ap.parse_args()
     global IOU

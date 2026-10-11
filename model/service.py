@@ -142,8 +142,9 @@ def after(name: str, job_id: str | None = None):
 
 @app.post("/fix/{hazard_id}")
 def fix(hazard_id: str, job_id: str | None = None):
-    """'After' picture. Until the FLUX inpainting step is wired in (Sunday), returns a simple preview:
-    the flagged area recoloured to show the fix direction (lighter rug, contrasting fitting, covered mirror)."""
+    """'After' picture: the flagged area recoloured to show the fix direction (lighter rug, contrasting fitting,
+    covered mirror), keeping the rest of the photo exactly as it is. Generative inpainting (SDXL, scripts/fix_sdxl.py)
+    was tried and not used: it often changed the room itself (redrew a toilet, erased a staircase)."""
     job = job_id or LATEST["job"]
     if job is None or not (JOBS / job / "result.json").exists():
         raise HTTPException(404, "unknown job")
