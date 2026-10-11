@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { liveScan, USING_FAKE, type LiveHazard } from "@/lib/brain";
 import { ROOMS } from "@/lib/contract";
-import { HAZARD_TEXT } from "@/lib/hazards";
+import { HAZARD_TEXT, roomName } from "@/lib/hazards";
 
 const ICON = {
   fill: "none",
@@ -344,7 +344,7 @@ export default function RoomCapture({
               >
                 {ROOMS.map((r) => (
                   <option key={r} value={r} className="capitalize">
-                    {r[0].toUpperCase() + r.slice(1)}
+                    {roomName(r)[0].toUpperCase() + roomName(r).slice(1)}
                   </option>
                 ))}
               </select>
@@ -490,8 +490,7 @@ export default function RoomCapture({
                     aria-hidden="true"
                     className="size-2 rounded-full bg-[#e8796c]"
                   />
-                  {seen} thing{seen === 1 ? "" : "s"} may be a
-                  problem
+                  {seen} thing{seen === 1 ? "" : "s"} may be a problem
                 </>
               ) : (
                 <>
@@ -607,8 +606,8 @@ export default function RoomCapture({
             </p>
             <p className="m-0 mt-2 max-w-[460px] text-[15px] leading-relaxed text-[var(--ss-ink-2)]">
               {mode === "live"
-                ? `Use your camera to look around your ${room}. You'll see what may be a problem marked as you scan.`
-                : `A video of the whole ${room}, or a few photos of it, from your phone.`}
+                ? `Use your camera to look around your ${roomName(room)}. You'll see what may be a problem marked as you scan.`
+                : `A video of the whole ${roomName(room)}, or a few photos of it, from your phone.`}
             </p>
             {mode === "upload" && (
               <div className="mt-4 flex flex-wrap items-center gap-3 lg:justify-center">
@@ -672,7 +671,10 @@ export default function RoomCapture({
           className="m-0 rounded-[14px] bg-[#fdecea] px-4 py-3 text-[14px] text-[#9b2c24]"
         >
           {error}{" "}
-          <Link href="/results?example" className="underline underline-offset-2">
+          <Link
+            href="/results?example"
+            className="underline underline-offset-2"
+          >
             See example results
           </Link>
         </p>

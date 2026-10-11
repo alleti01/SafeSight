@@ -28,6 +28,8 @@ export interface Progress {
   preview?: string;
   /** How many things were found so far. */
   found?: number;
+  /** Waiting for another check to finish (the service checks one at a time). */
+  queued?: boolean;
 }
 
 const POLL_MS = 700;
@@ -59,7 +61,7 @@ export async function analyze(
 
   let job = await upload(form, onProgress);
   while (job.status === "queued" || job.status === "working") {
-    onProgress({ step: job.step, done: job.done, total: job.total, preview: job.preview, found: job.found });
+    onProgress({ step: job.step, done: job.done, total: job.total, preview: job.preview, found: job.found, queued: job.status === "queued" });
     await sleep(POLL_MS);
     const res = await fetch(`${BRAIN_URL}/analyze/${job.job_id}`);
     if (!res.ok) throw new Error(await errorText(res));

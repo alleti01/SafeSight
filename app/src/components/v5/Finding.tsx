@@ -3,8 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import ContrastSwatches from "@/components/ContrastSwatches";
 import type { Hazard, HazardType } from "@/lib/contract";
-import { FIX_PLANS, materials, money } from "@/lib/costs";
-import { colorCheck, confidenceNote, objectName, plainContrast, type MeasuredHazard } from "@/lib/measure";
+import { materials, money, planFor } from "@/lib/costs";
+import {
+  colorCheck,
+  confidenceNote,
+  objectName,
+  plainContrast,
+  type MeasuredHazard,
+} from "@/lib/measure";
 
 // The pieces of a finding shared by the home page and the results: the photo
 // with the finding spotlit and framed by red corner brackets, and the tags
@@ -16,10 +22,11 @@ export interface Photo {
   height: number;
 }
 
-export const fixLine = (type: HazardType) => {
-  const cost = materials(FIX_PLANS[type]);
+export const fixLine = (type: HazardType, object?: string) => {
+  const plan = planFor({ type, object });
+  const cost = materials(plan);
   if (cost[1] === 0) return "Free to fix";
-  return `Fix from ${money(cost)}${FIX_PLANS[type]?.free ? " · free step today" : ""}`;
+  return `Fix from ${money(cost)}${plan?.free ? " · free step today" : ""}`;
 };
 
 // Size of an element, kept up to date.
@@ -29,7 +36,12 @@ export function useSize<T extends HTMLElement>() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setSize({ w: Math.round(e.contentRect.width), h: Math.round(e.contentRect.height) }));
+    const ro = new ResizeObserver(([e]) =>
+      setSize({
+        w: Math.round(e.contentRect.width),
+        h: Math.round(e.contentRect.height),
+      }),
+    );
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -42,7 +54,10 @@ export function useSize<T extends HTMLElement>() {
 function cardZoom(photo: Photo, box: Hazard["box"], w: number, h: number) {
   const [x0, y0, x1, y1] = box;
   const s = Math.max(w / photo.width, h / photo.height);
-  return Math.min(2, Math.max(1, 0.7 * Math.min(w / s / (x1 - x0), h / s / (y1 - y0))));
+  return Math.min(
+    2,
+    Math.max(1, 0.7 * Math.min(w / s / (x1 - x0), h / s / (y1 - y0))),
+  );
 }
 
 const r2 = (v: number) => Math.round(v * 100) / 100;
@@ -57,16 +72,27 @@ const center = (photo: Photo, box: Hazard["box"]): [number, number] => [
  * covers the frame centered on `focus` (the finding), then is zoomed about
  * that point. Clipped to the frame.
  */
-export function place(photo: Photo, focus: Hazard["box"], box: Hazard["box"], w: number, h: number, zoom: number) {
+export function place(
+  photo: Photo,
+  focus: Hazard["box"],
+  box: Hazard["box"],
+  w: number,
+  h: number,
+  zoom: number,
+) {
   const { width: W, height: H } = photo;
   const s = Math.max(w / W, h / H);
   const [px, py] = center(photo, focus);
   const ox = (w - W * s) * px;
   const oy = (h - H * s) * py;
-  const at = (x: number, y: number) => [px * w + zoom * (ox + x * s - px * w), py * h + zoom * (oy + y * s - py * h)];
+  const at = (x: number, y: number) => [
+    px * w + zoom * (ox + x * s - px * w),
+    py * h + zoom * (oy + y * s - py * h),
+  ];
   const [l, t] = at(box[0], box[1]);
   const [r, b] = at(box[2], box[3]);
-  const pc = (v: number, of: number) => Math.round((Math.min(of, Math.max(0, v)) / of) * 10000) / 100;
+  const pc = (v: number, of: number) =>
+    Math.round((Math.min(of, Math.max(0, v)) / of) * 10000) / 100;
   return { l: pc(l, w), t: pc(t, h), r: pc(r, w), b: pc(b, h) };
 }
 
@@ -108,7 +134,9 @@ function Layer({
       className={`absolute inset-0 h-full w-full object-cover ${gray ? "grayscale" : ""}`}
       style={{
         objectPosition: pos,
-        ...(zoom === 1 ? {} : { transform: `scale(${zoom})`, transformOrigin: pos }),
+        ...(zoom === 1
+          ? {}
+          : { transform: `scale(${zoom})`, transformOrigin: pos }),
         ...mask,
         ...(clip ? { clipPath: clip } : {}),
       }}
@@ -126,7 +154,9 @@ function Layer({
  * Fills its (positioned) container, whose shape is w×h; only the shape
  * matters, so a fixed-shape frame can pass its aspect ratio. With `zoom`, the
  * photo is enlarged so the finding fills most of the frame. `others` are
- * further findings in the same photo, framed in white.
+ * further findings in the same photo, framed in white. With `color`, the room
+ * stays in color too (only lightly dimmed, not softened): for people's own
+ * photos, where seeing the real room matters more than the effect.
  */
 export function Spotlight({
   photo,
@@ -135,6 +165,7 @@ export function Spotlight({
   h,
   zoom: zoomIn = true,
   others = [],
+  color = false,
 }: {
   photo: Photo;
   hazard: MeasuredHazard;
@@ -142,6 +173,7 @@ export function Spotlight({
   h: number;
   zoom?: boolean;
   others?: { hazard: Hazard; label: React.ReactNode }[];
+  color?: boolean;
 }) {
   const zoom = zoomIn ? cardZoom(photo, hazard.box, w, h) : 1;
   const { l, t, r, b } = place(photo, hazard.box, hazard.box, w, h, zoom);
@@ -149,7 +181,13 @@ export function Spotlight({
   const pos = `${r2(cx * 100)}% ${r2(cy * 100)}%`;
   const cover = ((r - l) * (b - t)) / 10000;
   const dark = (hazard.measure?.lightness ?? 50) < 30;
-  const dim = dark ? 0.75 : Math.max(0.38, 0.62 - 0.35 * cover);
+  const dim = color
+    ? dark
+      ? 0.9
+      : Math.max(0.7, 0.85 - 0.2 * cover)
+    : dark
+      ? 0.75
+      : Math.max(0.38, 0.62 - 0.35 * cover);
   // The light reaches a little past the finding: 7% of the frame's width on
   // every side. (Chrome won't take calc() in a gradient's size, so it's all
   // in percentages of the frame.)
@@ -162,14 +200,31 @@ export function Spotlight({
   const photoProps = { photo, pos, zoom };
   return (
     <>
-      <div className="absolute inset-0" style={{ filter: `brightness(${dim}) blur(1.5px)` }}>
-        <Layer {...photoProps} gray />
+      <div
+        className="absolute inset-0"
+        style={{
+          filter: color
+            ? `brightness(${dim})`
+            : `brightness(${dim}) blur(1.5px)`,
+        }}
+      >
+        <Layer {...photoProps} gray={!color} />
       </div>
-      <div className="absolute inset-0" style={{ maskImage: light, WebkitMaskImage: light }}>
-        <Layer {...photoProps} gray />
+      <div
+        className="absolute inset-0"
+        style={{ maskImage: light, WebkitMaskImage: light }}
+      >
+        <Layer {...photoProps} gray={!color} />
       </div>
-      <div className="absolute inset-0" style={dark ? { filter: "brightness(1.35)" } : undefined}>
-        {hazard.outline_url ? <Layer {...photoProps} outline={hazard.outline_url} /> : <Layer {...photoProps} clip={box} />}
+      <div
+        className="absolute inset-0"
+        style={dark ? { filter: "brightness(1.35)" } : undefined}
+      >
+        {hazard.outline_url ? (
+          <Layer {...photoProps} outline={hazard.outline_url} />
+        ) : (
+          <Layer {...photoProps} clip={box} />
+        )}
       </div>
       {others.map((o) => {
         const p = place(photo, hazard.box, o.hazard.box, w, h, zoom);
@@ -240,9 +295,19 @@ const TONES = {
   plain: "bg-[var(--ss-chip)] text-[var(--ss-ink-2)]",
 };
 
-export function Tag({ tone, onDark = false, children }: { tone: keyof typeof TONES; onDark?: boolean; children: React.ReactNode }) {
+export function Tag({
+  tone,
+  onDark = false,
+  children,
+}: {
+  tone: keyof typeof TONES;
+  onDark?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-[6px] px-2 py-0.5 text-[12px] font-medium ${TONES[tone]} ${onDark ? "!text-[11px]" : ""}`}>
+    <span
+      className={`inline-flex shrink-0 items-center rounded-[6px] px-2 py-0.5 text-[12px] font-medium ${TONES[tone]} ${onDark ? "!text-[11px]" : ""}`}
+    >
       {children}
     </span>
   );
@@ -262,7 +327,11 @@ export function Info({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <span className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <span
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
       <button
         type="button"
         aria-expanded={open}
@@ -271,7 +340,10 @@ export function Info({
         className={`inline-flex items-center gap-1.5 rounded-[6px] px-2 py-0.5 text-left text-[12px] font-medium ${TONES[tone]}`}
       >
         {label}
-        <span aria-hidden="true" className="grid size-3.5 place-items-center rounded-full border border-current text-[9px] leading-none print:hidden">
+        <span
+          aria-hidden="true"
+          className="grid size-3.5 place-items-center rounded-full border border-current text-[9px] leading-none print:hidden"
+        >
           i
         </span>
       </button>
@@ -289,7 +361,15 @@ export function Info({
 // What we can say about a finding, as tags: how sure we are that it's the
 // thing we think (and why), and what the color check measured. Each opens
 // for the reasons.
-export function FindingTags({ hazard, photo, up = false }: { hazard: MeasuredHazard; photo: Photo; up?: boolean }) {
+export function FindingTags({
+  hazard,
+  photo,
+  up = false,
+}: {
+  hazard: MeasuredHazard;
+  photo: Photo;
+  up?: boolean;
+}) {
   const c = confidenceNote(hazard, photo.width, photo.height);
   const color = colorCheck(hazard);
   const contrast = plainContrast(hazard);
@@ -297,8 +377,14 @@ export function FindingTags({ hazard, photo, up = false }: { hazard: MeasuredHaz
     <>
       <Info
         up={up}
-        tone={c.level === "High" ? "good" : c.level === "Medium" ? "warn" : "bad"}
-        label={c.level === "Low" ? `${c.percent}% sure · check in person` : `${c.percent}% sure it's ${objectName(hazard.type)}`}
+        tone={
+          c.level === "High" ? "good" : c.level === "Medium" ? "warn" : "bad"
+        }
+        label={
+          c.level === "Low"
+            ? `${c.percent}% sure · check in person`
+            : `${c.percent}% sure it's ${objectName(hazard.type)}`
+        }
       >
         <p className="m-0">{c.meaning}</p>
         <ul className="m-0 mt-2.5 flex list-none flex-col gap-1.5 p-0">
@@ -315,7 +401,9 @@ export function FindingTags({ hazard, photo, up = false }: { hazard: MeasuredHaz
       {color && contrast ? (
         <Info up={up} tone="good" label={`Measured: ${color}`}>
           <ContrastSwatches c={contrast} size="sm" dark />
-          <p className="m-0 mt-2.5 text-white/70">Measured from the photo&apos;s colors, not guessed.</p>
+          <p className="m-0 mt-2.5 text-white/70">
+            Measured from the photo&apos;s colors, not guessed.
+          </p>
         </Info>
       ) : (
         <Tag tone="plain">No color check needed</Tag>

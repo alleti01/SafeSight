@@ -94,6 +94,10 @@ export default function HazardClip({ src, poster, track, label }: { src: string;
           f.style.top = `${oy + b[1] * vh}px`;
           f.style.width = `${(b[2] - b[0]) * vw}px`;
           f.style.height = `${(b[3] - b[1]) * vh}px`;
+          // The name tag sits above the frame, or just inside it when the
+          // frame is at the top of the picture (it would be cut off there).
+          const tag = f.lastElementChild as HTMLElement | null;
+          if (tag) tag.style.transform = oy + b[1] * vh < 34 ? "translate(8px, 8px)" : "translateY(calc(-100% - 6px))";
         } else {
           f.style.opacity = "0";
         }
@@ -147,7 +151,7 @@ export default function HazardClip({ src, poster, track, label }: { src: string;
           "bottom-0 left-0 border-b-2 border-l-2 rounded-bl-[8px]", "right-0 bottom-0 border-r-2 border-b-2 rounded-br-[8px]"].map((c) => (
           <span key={c} className={`absolute border-[var(--danger)] ${c}`} style={{ width: "min(22px, 33%)", height: "min(22px, 33%)" }} />
         ))}
-        <span className="absolute top-0 left-0 -translate-y-[calc(100%+6px)] rounded-[6px] bg-white px-2 py-0.5 text-[12px] font-medium whitespace-nowrap text-[var(--ss-ink)]">
+        <span className="absolute top-0 left-0 rounded-[6px] bg-white px-2 py-0.5 text-[12px] font-medium whitespace-nowrap text-[var(--ss-ink)]">
           {label}
         </span>
       </span>

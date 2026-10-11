@@ -17,7 +17,7 @@ export default function PageShell({ children, credits = false }: { children: Rea
             <a href={GUIDE_URL} target="_blank" rel="noreferrer" className="underline underline-offset-2">
               Alzheimer&apos;s Society guide
             </a>
-            . We say &ldquo;may be a problem&rdquo;, never &ldquo;is dangerous&rdquo;.
+            .
           </span>
           {credits && <PhotoCredits className="max-w-[600px]" />}
         </div>

@@ -7,14 +7,14 @@ import { Spotlight } from "@/components/v5/Finding";
 import PageShell, { BLACK_PILL, Panel, PILL } from "@/components/v4/PageShell";
 import {
   duration,
-  FIX_PLANS,
+  planFor,
   labor,
   materials,
   money,
   planTotals,
   shopLinks,
 } from "@/lib/costs";
-import { HAZARD_TEXT, SEVERITY_LABEL } from "@/lib/hazards";
+import { HAZARD_TEXT, SEVERITY_LABEL, roomName } from "@/lib/hazards";
 import { listedItems, useScans, type GalleryItem } from "@/lib/results";
 
 // The fix plan, laid out like a plan rather than a stack of cards (after home
@@ -41,12 +41,14 @@ export default function ReportPage() {
   if (state === null) return null;
 
   // The plan covers the findings listed as sure on the results page (not less-sure or removed ones).
-  const items: Numbered[] = listedItems(state.scans, { sureOnly: true }).map((item, i) => ({
-    ...item,
-    n: i + 1,
-  }));
+  const items: Numbered[] = listedItems(state.scans, { sureOnly: true }).map(
+    (item, i) => ({
+      ...item,
+      n: i + 1,
+    }),
+  );
   const rooms = [...new Set(state.scans.map((s) => s.room))];
-  const totals = planTotals(items.map((i) => i.hazard.type));
+  const totals = planTotals(items.map((i) => i.hazard));
   // Frames from a video carry their time in it; photos don't.
   const frames = state.scans.flatMap((sc) => sc.frames);
   const video = frames.some((f) => f.time_s !== undefined);
@@ -79,7 +81,7 @@ export default function ReportPage() {
     );
   }
 
-  const plan = (i: Numbered) => FIX_PLANS[i.hazard.type];
+  const plan = (i: Numbered) => planFor(i.hazard);
   const free = items.filter((i) => plan(i).free);
   const weekend = items.filter(
     (i) => !plan(i).free || !same(plan(i).free!, plan(i).fix),
@@ -90,7 +92,8 @@ export default function ReportPage() {
   const showPhoto = (i: Numbered) =>
     !firstSeen.has(i.n) && !!firstSeen.add(i.n);
 
-  // Everything to buy, once each, with the findings it's for.
+  // Everything to buy, once per kind, with how many (one per finding it's
+  // for: two dark rugs need two rugs), so the list adds up to the totals.
   const shopping = new Map<
     string,
     { name: string; low: number; high: number; shop?: string; for: number[] }
@@ -128,7 +131,7 @@ export default function ReportPage() {
             {/* 1. What this is, and the totals. */}
             <header className="flex flex-col gap-3 print:gap-1.5">
               <h1 className="m-0 font-v5 text-[clamp(36px,4.6vw,56px)] leading-[1.05] font-medium tracking-[-0.03em] print:text-[26pt]">
-                Fix plan for the {rooms.join(", ")}
+                Fix plan for the {rooms.map(roomName).join(", ")}
               </h1>
               <p className="m-0 text-[17px] text-[var(--ss-ink-2)] print:text-[10.5pt]">
                 {items.length} {items.length === 1 ? "thing" : "things"} in{" "}
@@ -281,6 +284,7 @@ export default function ReportPage() {
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
                         <span className="sm:flex-1">
                           {c.name}
+                          {c.for.length > 1 && <span className="font-medium"> ×{c.for.length}</span>}
                           <span className="text-[var(--ss-ink-3)]">
                             {" "}
                             · for {c.for.map((n) => `#${n}`).join(", ")}
@@ -305,7 +309,7 @@ export default function ReportPage() {
                         )}
                       </span>
                       <span className="w-[104px] shrink-0 text-right whitespace-nowrap max-sm:w-auto print:w-[68px]">
-                        {money([c.low, c.high])}
+                        {money([c.low * c.for.length, c.high * c.for.length])}
                       </span>
                     </li>
                   ))}
@@ -385,6 +389,7 @@ function Row({
             hazard={spotHazard(item.hazard)}
             w={4}
             h={3}
+            color
           />
           <span className="absolute top-1.5 left-1.5">
             <Num n={item.n} />
@@ -398,7 +403,9 @@ function Row({
       <div className="flex min-w-0 flex-1 flex-col gap-1 print:gap-0.5">
         <span className="text-[14px] text-[var(--ss-ink-3)] print:text-[8.5pt]">
           {text?.name ?? item.hazard.type}
-          {manyRooms && <span className="capitalize"> · {item.room}</span>}
+          {manyRooms && (
+            <span className="capitalize"> · {roomName(item.room)}</span>
+          )}
         </span>
         {photo && text && (
           <span className="text-[14px] leading-snug text-[var(--ss-ink-2)] print:text-[8.5pt]">

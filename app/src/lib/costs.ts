@@ -32,14 +32,20 @@ export interface FixPlan {
   other: string[];
 }
 
-const SHIPPING = "Shipping is usually free on Walmart orders over $35; smaller orders may add a few dollars.";
+const SHIPPING =
+  "Shipping is usually free on Walmart orders over $35; smaller orders may add a few dollars.";
 
 export const FIX_PLANS: Record<HazardType, FixPlan> = {
   dark_rug: {
     free: "Take the rug away.",
     fix: "Swap it for a plain, lighter rug held down with grippers",
     items: [
-      { name: "Plain light 5×7 ft rug", low: 39, high: 47, shop: "5x7 area rug beige plain" },
+      {
+        name: "Plain light 5×7 ft rug",
+        low: 39,
+        high: 47,
+        shop: "5x7 area rug beige plain",
+      },
       { name: "Rug grippers", low: 6, high: 12, shop: "rug grippers" },
     ],
     diyMinutes: [10, 20],
@@ -48,38 +54,75 @@ export const FIX_PLANS: Record<HazardType, FixPlan> = {
   loose_rug: {
     free: "Take the rug away.",
     fix: "Hold it flat with rug grippers (in a bathroom, use a non-slip bath mat instead)",
-    items: [{ name: "Rug grippers or a non-slip bath mat", low: 6, high: 15, shop: "rug grippers non slip" }],
+    items: [
+      {
+        name: "Rug grippers or a non-slip bath mat",
+        low: 6,
+        high: 15,
+        shop: "rug grippers non slip",
+      },
+    ],
     diyMinutes: [5, 10],
     other: [SHIPPING],
   },
   shiny_floor: {
     free: "Close blinds when the sun hits the floor.",
     fix: "Hang a sheer curtain to soften glare",
-    items: [{ name: "Sheer curtain panel (per window)", low: 8, high: 16, shop: "sheer curtain panel" }],
+    items: [
+      {
+        name: "Sheer curtain panel (per window)",
+        low: 8,
+        high: 16,
+        shop: "sheer curtain panel",
+      },
+    ],
     diyMinutes: [10, 20],
     handymanHours: [0.5, 1],
-    other: ["If there's no curtain rod, add a tension rod or have one fitted.", "Replacing the floor with a matt one is a bigger job: get local quotes."],
+    other: [
+      "If there's no curtain rod, add a tension rod or have one fitted.",
+      "Replacing the floor with a matt one is a bigger job: get local quotes.",
+    ],
   },
   patterned_floor: {
     fix: "Cover the busiest part with a plain, light rug held down with grippers",
     items: [
-      { name: "Plain light 5×7 ft rug", low: 39, high: 47, shop: "5x7 area rug beige plain" },
+      {
+        name: "Plain light 5×7 ft rug",
+        low: 39,
+        high: 47,
+        shop: "5x7 area rug beige plain",
+      },
       { name: "Rug grippers", low: 6, high: 12, shop: "rug grippers" },
     ],
     diyMinutes: [10, 20],
-    other: ["Replacing patterned flooring with plain flooring is a bigger job: get local quotes.", SHIPPING],
+    other: [
+      "Replacing patterned flooring with plain flooring is a bigger job: get local quotes.",
+      SHIPPING,
+    ],
   },
   bathroom_fitting_blends_in: {
     free: "Use the brightest towels you already have.",
     fix: "Fit a colored toilet seat",
-    items: [{ name: "Colored toilet seat", low: 18, high: 21, shop: "colored toilet seat" }],
+    items: [
+      {
+        name: "Colored toilet seat",
+        low: 18,
+        high: 21,
+        shop: "colored toilet seat",
+      },
+    ],
     diyMinutes: [15, 30],
     handymanHours: [0.5, 1],
-    other: ["Check whether the toilet is round or elongated before buying.", SHIPPING],
+    other: [
+      "Check whether the toilet is round or elongated before buying.",
+      SHIPPING,
+    ],
   },
   furniture_blends_in: {
     fix: "Drape a throw in a contrasting color",
-    items: [{ name: "Contrasting throw", low: 4, high: 10, shop: "throw blanket" }],
+    items: [
+      { name: "Contrasting throw", low: 4, high: 10, shop: "throw blanket" },
+    ],
     diyMinutes: [2, 5],
     other: [SHIPPING],
   },
@@ -89,20 +132,36 @@ export const FIX_PLANS: Record<HazardType, FixPlan> = {
     items: [],
     diyMinutes: [10, 20],
     handymanHours: [0.5, 1],
-    other: ["Heavy or wall-fixed mirrors are a two-person job; a handyman may patch and paint the wall too."],
+    other: [
+      "Heavy or wall-fixed mirrors are a two-person job; a handyman may patch and paint the wall too.",
+    ],
   },
   stair_edge_hard_to_see: {
     fix: "Mark every step edge with high-visibility anti-slip tape",
-    items: [{ name: "Anti-slip stair tape, 3 rolls (about 13 steps)", low: 28, high: 45, shop: "anti slip stair tape yellow" }],
+    items: [
+      {
+        name: "Anti-slip stair tape, 3 rolls (about 13 steps)",
+        low: 28,
+        high: 45,
+        shop: "anti slip stair tape yellow",
+      },
+    ],
     diyMinutes: [45, 75],
     handymanHours: [1, 2],
-    other: ["Tape wears and may need replacing; screw-on contrasting nosing lasts longer but costs more."],
+    other: [
+      "Tape wears and may need replacing; screw-on contrasting nosing lasts longer but costs more.",
+    ],
   },
   floor_clutter: {
     free: "Clear walkways and keep shoes off the floor.",
     fix: "Run cables along the wall in a cord cover, and give shoes a rack",
     items: [
-      { name: "Cord cover kit, 10–16 ft", low: 20, high: 23, shop: "cord cover raceway kit" },
+      {
+        name: "Cord cover kit, 10–16 ft",
+        low: 20,
+        high: 23,
+        shop: "cord cover raceway kit",
+      },
       { name: "Shoe rack", low: 6, high: 24, shop: "shoe rack" },
     ],
     diyMinutes: [20, 40],
@@ -117,16 +176,33 @@ export const FIX_PLANS: Record<HazardType, FixPlan> = {
   },
   glass_door: {
     fix: "Put window decals across the glass at eye level",
-    items: [{ name: "Window decals or frosted film strip", low: 8, high: 15, shop: "window decals glass door" }],
+    items: [
+      {
+        name: "Window decals or frosted film strip",
+        low: 8,
+        high: 15,
+        shop: "window decals glass door",
+      },
+    ],
     diyMinutes: [10, 20],
     other: [SHIPPING],
   },
   door_blends_in: {
-    free: "Hang a simple picture sign on the bathroom door at eye level.",
+    free: "Hang a simple picture sign on the door at eye level, like a toilet sign for the bathroom.",
     fix: "Paint the door or its frame a contrasting color",
     items: [
-      { name: "Quart of door paint", low: 15, high: 25, shop: "interior door paint quart" },
-      { name: "Brush, roller and tape", low: 8, high: 15, shop: "paint brush roller kit" },
+      {
+        name: "Quart of door paint",
+        low: 15,
+        high: 25,
+        shop: "interior door paint quart",
+      },
+      {
+        name: "Brush, roller and tape",
+        low: 8,
+        high: 15,
+        shop: "paint brush roller kit",
+      },
     ],
     diyMinutes: [90, 180],
     handymanHours: [2, 3],
@@ -135,21 +211,47 @@ export const FIX_PLANS: Record<HazardType, FixPlan> = {
   window_reflection: {
     free: "Close the curtains or blinds as it gets dark.",
     fix: "Hang curtains or a blind if the window has none",
-    items: [{ name: "Curtain panel (per window)", low: 10, high: 25, shop: "blackout curtain panel" }],
+    items: [
+      {
+        name: "Curtain panel (per window)",
+        low: 10,
+        high: 25,
+        shop: "blackout curtain panel",
+      },
+    ],
     diyMinutes: [10, 20],
     handymanHours: [0.5, 1],
-    other: ["If there's no curtain rod, add a tension rod or have one fitted.", SHIPPING],
+    other: [
+      "If there's no curtain rod, add a tension rod or have one fitted.",
+      SHIPPING,
+    ],
   },
   floor_transition: {
     fix: "Use a flat threshold strip close to the floor's color",
-    items: [{ name: "Threshold transition strip", low: 10, high: 20, shop: "floor transition strip" }],
+    items: [
+      {
+        name: "Threshold transition strip",
+        low: 10,
+        high: 20,
+        shop: "floor transition strip",
+      },
+    ],
     diyMinutes: [15, 30],
     handymanHours: [0.5, 1],
-    other: ["Re-flooring so both areas match is a bigger job: get local quotes."],
+    other: [
+      "Re-flooring so both areas match is a bigger job: get local quotes.",
+    ],
   },
   floor_wall_blend: {
     fix: "Add a contrasting skirting strip along the bottom of the wall",
-    items: [{ name: "Peel-and-stick vinyl baseboard, 20 ft", low: 15, high: 30, shop: "peel and stick vinyl baseboard" }],
+    items: [
+      {
+        name: "Peel-and-stick vinyl baseboard, 20 ft",
+        low: 15,
+        high: 30,
+        shop: "peel and stick vinyl baseboard",
+      },
+    ],
     diyMinutes: [30, 60],
     handymanHours: [1, 2],
     other: [SHIPPING],
@@ -157,8 +259,18 @@ export const FIX_PLANS: Record<HazardType, FixPlan> = {
   patterned_wall: {
     fix: "Paint the wall a plain, light color",
     items: [
-      { name: "Gallon of wall paint", low: 25, high: 40, shop: "interior wall paint gallon" },
-      { name: "Brush, roller and tape", low: 8, high: 15, shop: "paint brush roller kit" },
+      {
+        name: "Gallon of wall paint",
+        low: 25,
+        high: 40,
+        shop: "interior wall paint gallon",
+      },
+      {
+        name: "Brush, roller and tape",
+        low: 8,
+        high: 15,
+        shop: "paint brush roller kit",
+      },
     ],
     diyMinutes: [180, 300],
     handymanHours: [3, 5],
@@ -168,9 +280,54 @@ export const FIX_PLANS: Record<HazardType, FixPlan> = {
 
 export type Range = [number, number];
 
+// Clutter depends on what was actually on the floor: the model tells cables
+// apart from other things (it has no idea about shoes), so a check's own
+// findings get a plan for what was seen. The fixed floor_clutter plan above,
+// shoes and all, is for the example room, which has both.
+const CLUTTER_BY_OBJECT: Record<string, FixPlan> = {
+  cable: {
+    free: "Move loose cords out of walkways.",
+    fix: "Run cords along the wall in a cord cover",
+    items: [
+      {
+        name: "Cord cover kit, 10–16 ft",
+        low: 20,
+        high: 23,
+        shop: "cord cover raceway kit",
+      },
+    ],
+    diyMinutes: [15, 30],
+    other: [SHIPPING],
+  },
+  other: {
+    free: "Clear the walkway and put things away.",
+    fix: "Give things a home off the floor, like a basket or bin where they pile up",
+    items: [
+      {
+        name: "Storage basket or bin",
+        low: 10,
+        high: 20,
+        shop: "storage basket",
+      },
+    ],
+    diyMinutes: [5, 15],
+    other: [SHIPPING],
+  },
+};
+
+/** The fix plan for one finding, using what the model saw where that matters (clutter). */
+export function planFor(h: { type: HazardType; object?: string }): FixPlan {
+  if (h.type === "floor_clutter" && h.object)
+    return CLUTTER_BY_OBJECT[h.object === "cable" ? "cable" : "other"];
+  return FIX_PLANS[h.type];
+}
+
 export function materials(plan: FixPlan | undefined): Range {
   if (!plan) return [0, 0];
-  return plan.items.reduce<Range>(([lo, hi], i) => [lo + i.low, hi + i.high], [0, 0]);
+  return plan.items.reduce<Range>(
+    ([lo, hi], i) => [lo + i.low, hi + i.high],
+    [0, 0],
+  );
 }
 
 export function labor(plan: FixPlan): Range {
@@ -179,18 +336,23 @@ export function labor(plan: FixPlan): Range {
 }
 
 /** Totals for a set of hazards: doing everything yourself, or hiring help where it makes sense. */
-export function planTotals(types: HazardType[]) {
+export function planTotals(
+  findings: (HazardType | { type: HazardType; object?: string })[],
+) {
   let diy: Range = [0, 0];
   let hired: Range = [0, 0];
   let minutes: Range = [0, 0];
   let freeSteps = 0;
-  for (const type of types) {
-    const plan = FIX_PLANS[type];
+  for (const f of findings) {
+    const plan = typeof f === "string" ? FIX_PLANS[f] : planFor(f);
     const [mLo, mHi] = materials(plan);
     const [lLo, lHi] = labor(plan);
     diy = [diy[0] + mLo, diy[1] + mHi];
     hired = [hired[0] + mLo + lLo, hired[1] + mHi + lHi];
-    minutes = [minutes[0] + plan.diyMinutes[0], minutes[1] + plan.diyMinutes[1]];
+    minutes = [
+      minutes[0] + plan.diyMinutes[0],
+      minutes[1] + plan.diyMinutes[1],
+    ];
     if (plan.free) freeSteps++;
   }
   return { diy, hired, minutes, freeSteps };
@@ -213,13 +375,28 @@ export function duration([lo, hi]: Range): string {
 export function shopLinks(query: string) {
   const q = encodeURIComponent(query);
   return [
-    { store: "Walmart", url: `https://www.walmart.com/search?q=${q}&sort=price_low` },
-    { store: "Amazon", url: `https://www.amazon.com/s?k=${q}&s=price-asc-rank` },
+    {
+      store: "Walmart",
+      url: `https://www.walmart.com/search?q=${q}&sort=price_low`,
+    },
+    {
+      store: "Amazon",
+      url: `https://www.amazon.com/s?k=${q}&s=price-asc-rank`,
+    },
   ];
 }
 
 export const SOURCES = [
-  { label: "Handyman rates: Jobber handyman pricing guide", url: "https://getjobber.com/resources/salary-guides/handyman/" },
-  { label: "Handyman rates: Housecall Pro, how to price handyman jobs", url: "https://www.housecallpro.com/resources/how-to-price-handyman-jobs/" },
-  { label: "Materials: Walmart and Home Depot listings checked October 2026", url: "https://www.walmart.com" },
+  {
+    label: "Handyman rates: Jobber handyman pricing guide",
+    url: "https://getjobber.com/resources/salary-guides/handyman/",
+  },
+  {
+    label: "Handyman rates: Housecall Pro, how to price handyman jobs",
+    url: "https://www.housecallpro.com/resources/how-to-price-handyman-jobs/",
+  },
+  {
+    label: "Materials: Walmart and Home Depot listings checked October 2026",
+    url: "https://www.walmart.com",
+  },
 ];
