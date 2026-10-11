@@ -95,7 +95,8 @@ class Analyzer:
                     prompts = json.load(open(ROOT / "prompts.json"))["labels"]
                     m.set_classes([prompts[l][0] for l in LABELS16])
                     m.model.names = dict(enumerate(LABELS16))
-                names = {k: (v if v in LABELS16 or len(m.names) != 16 else LABELS16[k]) for k, v in m.names.items()}
+                from evaluate import name_of
+                names = {k: name_of(m.names, k) for k in m.names}
                 mine = {l for l, x in cfg["per_label"].items() if x == w} if cfg["per_label"] else None
                 self.yolos.append((m, mine, names))
         self.sam_proc = Sam2Processor.from_pretrained(ROOT / "weights" / "sam2.1-hiera-large")

@@ -113,10 +113,18 @@ def predict_combo(cfg_path, files):
     return out, set(cfg["per_label"])
 
 
+PHRASE2LABEL = {"toilet paper": "toilet_roll_holder", "staircase": "stairs", "power cord": "cable",
+                "clutter on floor": "floor_clutter", "trash can": "bin", "glass door": "glass_door"}
+
+
 def name_of(names, c):
-    """Fine-tuned YOLO-World was trained with plain-phrase class names; map them back by index."""
+    """Fine-tuned YOLO-World models were trained with plain-phrase class names; map them back to our labels."""
     n = names[int(c)]
-    return n if n in LABELS16 or len(names) != 16 else LABELS16[int(c)]
+    if n in LABELS16:
+        return n
+    if n in PHRASE2LABEL:
+        return PHRASE2LABEL[n]
+    return LABELS16[int(c)] if len(names) == 16 else n
 
 
 def iou(a, b):
