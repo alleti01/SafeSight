@@ -57,6 +57,7 @@ MAX_SIDE = 1280
 MAX_VIDEO_BYTES = 500 * 1024 * 1024
 MAX_LIVE_BYTES = 3 * 1024 * 1024
 VIDEO_FPS = 1.0  # one sharp, distinct frame per second (extract_frames drops blurry and repeated ones)
+MAX_FRAMES = 40  # long videos: this many frames, evenly spread (neighbouring frames of a slow tour mostly repeat)
 
 log = logging.getLogger("safesight")
 app = FastAPI(title="SafeSight brain")
@@ -69,6 +70,17 @@ _an = None
 _blur = None
 jobs: dict[str, dict] = {}
 jobs_lock = threading.Lock()
+
+
+@app.on_event("startup")
+def warm_up():
+    """Load the models in the background at start, so the first check doesn't wait for them."""
+    def load():
+        with _models_lock:
+            models()
+
+    if os.environ.get("WARM", "1") == "1":
+        threading.Thread(target=load, daemon=True).start()
 
 
 def models():
@@ -161,6 +173,8 @@ def analyze_job(job_id, room, tmp: Path, photo_data, video_path, progress):
     if video_path is not None:
         kept = extract(video_path, raw, fps=VIDEO_FPS, prefix="v")
         paths = [p for p, _ in kept]
+        if len(paths) > MAX_FRAMES:
+            paths = [paths[round(i * (len(paths) - 1) / (MAX_FRAMES - 1))] for i in range(MAX_FRAMES)]
         times = [round(int(p.stem.rsplit("_f", 1)[1]) / VIDEO_FPS, 1) for p in paths]
         if not paths:
             raise BadUpload("We couldn't find clear frames in that video. Try filming a little slower.")
@@ -228,9 +242,17 @@ def analyze_job(job_id, room, tmp: Path, photo_data, video_path, progress):
         out_h.append(item)
     # 5. clips (videos): a few seconds around each moment a hazard was seen, people blurred, plus a box track
     if video_path is not None and out_h:
-        with _models_lock:
-            make_clips(video_path, out_h, frames, out / "clips", f"{prefix}/clips", an,
-                       lambda img: blur_people(img, blur, dev)[0], dev, lambda d, t: progress("contrast", d, t, found=len(out_h)))
+        try:
+            with _models_lock:
+                make_clips(video_path, out_h, frames, out / "clips", f"{prefix}/clips", an,
+                           lambda img: blur_people(img, blur, dev)[0], dev,
+                           lambda d, t: progress("contrast", d, t, found=len(out_h)))
+        except Exception:  # clips are a bonus: without them the website shows the best photo of each finding
+            log.exception("clips for %s failed", job_id)
+            for h in out_h:
+                for k in ("clip_url", "clip_start_s", "track"):
+                    h.pop(k, None)
+            shutil.rmtree(out / "clips", ignore_errors=True)
     progress("contrast", 1, 1)
     result = {"job_id": job_id, "room": room, "frames": frames, "hazards": out_h}
     json.dump(result, open(out / "result.json", "w"), indent=2)

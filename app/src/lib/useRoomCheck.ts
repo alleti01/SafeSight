@@ -72,15 +72,16 @@ export function useRoomCheck() {
 }
 
 /**
- * About how long a check takes, measured on our analysis service: about 1.8 s
- * a photo; a video about 1.3x its length (one frame a second), plus about 3.5 s
- * for each short clip of a finding (one per few seconds of video, up to 12).
+ * About how long a check takes, measured on our analysis service (Oct 11): about
+ * 2.2 s a photo; a video about 1.75 s for each second (one frame a second, at
+ * most 40 frames), plus about 2.8 s for each short clip of a finding (one per
+ * few seconds of video, up to 12).
  */
 export function estimateSeconds(files: File[], videoSeconds: number | null): number | null {
   if (files.length === 0) return null;
   if (files.some((f) => f.type.startsWith("video/"))) {
     if (videoSeconds === null) return null;
-    return Math.round(6 + videoSeconds * 1.3 + Math.min(12, Math.ceil(videoSeconds / 3)) * 3.5);
+    return Math.round(6 + Math.min(videoSeconds, 40) * 1.75 + Math.min(12, Math.ceil(videoSeconds / 3)) * 2.8);
   }
-  return Math.round(3 + files.length * 1.8);
+  return Math.round(2 + files.length * 2.2);
 }
