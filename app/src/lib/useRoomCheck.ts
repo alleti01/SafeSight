@@ -8,6 +8,8 @@ import { saveScan } from "./scans";
 
 // Picking a room and files, sending them to the brain, and moving on to the
 // results: shared by every version of the home page.
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+
 export function useRoomCheck() {
   const router = useRouter();
   const [room, setRoom] = useState<string>("bathroom");
@@ -29,6 +31,12 @@ export function useRoomCheck() {
     const vids = chosen.filter((f) => f.type.startsWith("video/"));
     if (vids.length > 1 || (vids.length === 1 && chosen.length > 1)) {
       setError("Choose either photos or one video, not both.");
+      setFiles([]);
+      return;
+    }
+    // The analysis service takes videos up to 500 MB; say so before a long upload, not after.
+    if (vids.length === 1 && vids[0].size > MAX_VIDEO_BYTES) {
+      setError("That video is over 500 MB. Try a shorter clip: about 30 seconds is plenty.");
       setFiles([]);
       return;
     }

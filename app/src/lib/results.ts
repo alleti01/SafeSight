@@ -35,10 +35,21 @@ export function useScans() {
 }
 
 /** Every hazard across scans, most serious first. */
+// Floor checks whose two samples differ by almost nothing measured the same
+// surface twice (a carpet taken for both floor and wall), so they're not shown.
+// Objects are different: a white door on a white wall really can measure ~0,
+// and that's exactly what should be flagged, so they're kept.
+const SAME_SURFACE = 1.5;
+const CONTRAST_TYPES = new Set(["floor_wall_blend", "floor_transition"]);
+function measuredNothing(h: AnalyzeResult["hazards"][number]): boolean {
+  const d = (h as { evidence?: { lrv_difference?: unknown } }).evidence?.lrv_difference;
+  return CONTRAST_TYPES.has(h.type) && typeof d === "number" && d < SAME_SURFACE;
+}
+
 export function galleryItems(scans: AnalyzeResult[]): GalleryItem[] {
   return scans
     .flatMap((scan) =>
-      scan.hazards.flatMap((hazard) => {
+      scan.hazards.filter((h) => !measuredNothing(h)).flatMap((hazard) => {
         const frame = scan.frames.find((f) => f.frame_id === hazard.frame_id);
         return frame
           ? [{ hazard, frame, room: scan.room, jobId: scan.job_id, key: `${scan.job_id}-${hazard.hazard_id}` }]

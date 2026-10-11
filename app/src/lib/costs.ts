@@ -188,7 +188,7 @@ export const FIX_PLANS: Record<HazardType, FixPlan> = {
     other: [SHIPPING],
   },
   door_blends_in: {
-    free: "Hang a simple picture sign on the door at eye level, like a toilet sign for the bathroom.",
+    free: "Hang a simple picture sign at eye level showing what's behind the door.",
     fix: "Paint the door or its frame a contrasting color",
     items: [
       {

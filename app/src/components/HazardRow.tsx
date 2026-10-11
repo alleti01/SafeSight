@@ -21,20 +21,27 @@ const OBJECT_NAME: Record<string, string> = {
 };
 const objectLabel = (o?: string) => (o ? OBJECT_NAME[o] ?? o.charAt(0).toUpperCase() + o.slice(1).replace(/_/g, " ") : "");
 
-const CLIP_FIRST = 0.75; // in view at least this much of the clip: show the clip first
 const CLIP_OFFER = 0.4; // less than this: photo only
 
 // Findings decided by the contrast check, with the measured gap in light
 // reflectance points (0-100), for a tag in the row's header.
-const pts = (n: number) => `${Math.round(n)} ${Math.round(n) === 1 ? "pt" : "pts"}`;
-const points = (n: number) => `${Math.round(n)} ${Math.round(n) === 1 ? "point" : "points"}`;
+// Shown rounded down, so a difference of 19.6 reads 19, not "20 … flag under 20".
+const shown = (n: number) => Math.floor(n);
+const pts = (n: number) => `${shown(n)} ${shown(n) === 1 ? "pt" : "pts"}`;
+const points = (n: number) => `${shown(n)} ${shown(n) === 1 ? "point" : "points"}`;
 
 function contrastNote(h: Hazard): string | null {
   const e = h.evidence ?? {};
   if (h.type === "dark_rug" && typeof e.darker_than_floor_by === "number") return `Darker than floor · ${pts(e.darker_than_floor_by)}`;
   const byContrast = ["bathroom_fitting_blends_in", "furniture_blends_in", "door_blends_in", "floor_wall_blend", "floor_transition"];
   if (!byContrast.includes(h.type)) return null;
-  const d = typeof e.lrv_difference === "number" ? e.lrv_difference : h.lrv ? Math.abs(h.lrv.object - h.lrv.around) : null;
+  // The same number the Measured sentence shows (from the rounded values when they agree).
+  const d =
+    h.lrv && lrvAgrees(h)
+      ? Math.abs(Math.round(h.lrv.object) - Math.round(h.lrv.around))
+      : typeof e.lrv_difference === "number"
+        ? e.lrv_difference
+        : null;
   if (d === null) return "Low contrast";
   return h.type === "floor_transition" ? `Floor change · ${pts(d)}` : `Low contrast · ${pts(d)}`;
 }
@@ -47,7 +54,7 @@ function contrastNote(h: Hazard): string | null {
 function lrvAgrees(h: Hazard): boolean {
   const e = h.evidence ?? {};
   if (!h.lrv || typeof e.lrv_difference !== "number") return Boolean(h.lrv);
-  return Math.abs(Math.abs(h.lrv.object - h.lrv.around) - e.lrv_difference) <= 3;
+  return Math.abs(Math.abs(h.lrv.object - h.lrv.around) - e.lrv_difference) <= 1;
 }
 
 // What the light reflectance numbers mean, in a sentence.
@@ -57,11 +64,13 @@ function lrvSentence(h: Hazard): string | null {
   const l = h.lrv;
   const flag = (d: number) => `Design guides flag under ${LRV_POOR}${d < LRV_BAD ? `, and under ${LRV_BAD} is very hard to see` : ""}.`;
   if (l && lrvAgrees(h)) {
-    const d = Math.abs(l.object - l.around);
-    return `Light reflectance ${Math.round(l.object)} against ${Math.round(l.around)}: a difference of ${Math.round(d)}. ${flag(d)}`;
+    const [o, a] = [Math.round(l.object), Math.round(l.around)];
+    const d = Math.abs(o - a);
+    return `Light reflectance ${o} against ${a}: a difference of ${d}. ${flag(Math.abs(l.object - l.around))}`;
   }
   if (typeof e.lrv_difference !== "number") return null;
   const against = h.type === "door_blends_in" ? "the wall right around it" : "what's right around it";
+  if (e.lrv_difference < 1) return `Light reflectance is almost exactly the same as ${against}. ${flag(e.lrv_difference)}`;
   return `Light reflectance differs from ${against} by only about ${points(e.lrv_difference)}. ${flag(e.lrv_difference)}`;
 }
 
@@ -107,7 +116,10 @@ export default function HazardRow({
   const track = hazard.track ?? [];
   const inView = track.length ? track.filter((e) => e[5]).length / track.length : 0;
   const hasClip = Boolean(hazard.clip_url) && inView >= CLIP_OFFER;
-  const [view, setView] = useState<"clip" | "photo">(hasClip && inView >= CLIP_FIRST ? "clip" : "photo");
+  // Photo first: it's framed on the finding itself. The clip's moving frame
+  // follows the detector frame by frame and can land on a neighbouring object
+  // (seen in real-video testing), so the clip is one tap away instead.
+  const [view, setView] = useState<"clip" | "photo">("photo");
   const contrastTag = contrastNote(hazard);
   const [media, size] = useSize<HTMLDivElement>();
   const contrast = plainContrast(hazard);

@@ -79,7 +79,7 @@ export default function AnalysisProgress({
   const preview = progress?.preview ? assetUrl(progress.preview) : null;
   const frameNote =
     progress && (progress.step === "objects" || progress.step === "people") && progress.total > 0
-      ? `${isVideo ? "Frame" : "Photo"} ${Math.min(progress.done + 1, progress.total)} of ${progress.total}`
+      ? `Checking ${isVideo ? "frame" : "photo"} ${Math.min(progress.done + 1, progress.total)} of ${progress.total}`
       : null;
 
   return (

@@ -365,12 +365,16 @@ export function FindingTags({
   hazard,
   photo,
   up = false,
+  sure,
 }: {
   hazard: MeasuredHazard;
   photo: Photo;
   up?: boolean;
+  /** The results page's call (the service's per-object cutoff); overrides the level from confidence alone. */
+  sure?: boolean;
 }) {
   const c = confidenceNote(hazard, photo.width, photo.height);
+  const low = sure === undefined ? c.level === "Low" : !sure;
   const color = colorCheck(hazard);
   const contrast = plainContrast(hazard);
   return (
@@ -378,10 +382,10 @@ export function FindingTags({
       <Info
         up={up}
         tone={
-          c.level === "High" ? "good" : c.level === "Medium" ? "warn" : "bad"
+          low ? "bad" : c.level === "High" ? "good" : "warn"
         }
         label={
-          c.level === "Low"
+          low
             ? `${c.percent}% sure · check in person`
             : `${c.percent}% sure it's ${objectName(hazard.type)}`
         }

@@ -32,7 +32,9 @@ export default function ResultsPage() {
   const rooms = [...new Set(scans.map((s) => s.room))];
   const photoCount = scans.reduce((n, s) => n + s.frames.length, 0);
   // Frames from a video carry their time in it; say so instead of "photos".
-  const fromVideo = scans.some((s) => s.frames.some((f) => f.time_s !== undefined));
+  const fromVideo = scans.some((s) =>
+    s.frames.some((f) => f.time_s !== undefined),
+  );
   const checkedLine = fromVideo
     ? `${photoCount} ${photoCount === 1 ? "moment" : "moments"} from your video checked`
     : `${photoCount} photo${photoCount === 1 ? "" : "s"} checked`;
@@ -75,9 +77,8 @@ export default function ResultsPage() {
           {scans.length > 0 && (
             <BlurFade delay={0.2} className="flex flex-col items-start gap-5">
               <p className="m-0 text-[15px] leading-relaxed text-[var(--ss-ink-2)]">
-                {checkedLine}. Every
-                home and person is different, so treat these as suggestions, not
-                a safety inspection.
+                {checkedLine}. Every home and person is different, so treat
+                these as suggestions, not a safety inspection.
                 {isExample && " Check a room to see your own."}
               </p>
               {items.length > 0 && (
@@ -122,9 +123,12 @@ export default function ResultsPage() {
           <Panel key={scan.job_id} className="!py-8">
             <details open={items.length === 0}>
               <summary className="cursor-pointer text-[18px] font-medium">
-                {scan.frames.some((f) => f.time_s !== undefined) ? "Moments we checked" : "Photos we checked"}
+                {scan.frames.some((f) => f.time_s !== undefined)
+                  ? "Moments we checked"
+                  : "Photos we checked"}
                 {" · "}
-                <span className="capitalize">{roomName(scan.room)}</span> ({scan.frames.length})
+                <span className="capitalize">{roomName(scan.room)}</span> (
+                {scan.frames.length})
               </summary>
               <ul className="m-0 mt-6 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4 lg:grid-cols-6">
                 {scan.frames.map((f) => (
@@ -350,7 +354,7 @@ function Gallery({
           (!priority || i.hazard.severity === priority),
       ).length > 0 && (
         <details className="group mt-4 border-t border-[var(--ss-line)] pt-6">
-          <summary className="flex cursor-pointer list-none items-baseline gap-3 text-[17px] font-medium [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-3 gap-y-1 text-[17px] font-medium [&::-webkit-details-marker]:hidden">
             <span
               aria-hidden="true"
               className="text-[var(--ss-ink-3)] transition-transform group-open:rotate-90"
@@ -358,7 +362,7 @@ function Gallery({
               ›
             </span>
             Less sure: check these in person
-            <span className="text-[14px] font-normal text-[var(--ss-ink-3)]">
+            <span className="text-[14px] font-normal text-[var(--ss-ink-3)] max-sm:basis-full max-sm:pl-6">
               {unsure.length} more. The detector wasn&apos;t confident enough to
               list them above.
             </span>

@@ -88,7 +88,11 @@ export default function HazardClip({ src, poster, track, label }: { src: string;
           b[2] = Math.min(b[2], (W - ox) / vw - 0.01);
           b[3] = Math.min(b[3], (H - oy) / vh - 0.01);
         }
-        if (b && b[2] > b[0] && b[3] > b[1]) {
+        // Only once the clip itself is showing: before it plays, the poster
+        // (the finding's photo) is on screen, and a box for the clip's first
+        // moment would land on the wrong thing there.
+        const showing = v.readyState >= 2 && !(v.paused && v.currentTime === 0);
+        if (showing && b && b[2] > b[0] && b[3] > b[1]) {
           f.style.opacity = "1";
           f.style.left = `${ox + b[0] * vw}px`;
           f.style.top = `${oy + b[1] * vh}px`;

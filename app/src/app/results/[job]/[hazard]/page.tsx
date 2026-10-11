@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  GuideLink,
   HazardExplanation,
   SeverityPill,
   spotHazard,
@@ -13,7 +12,8 @@ import { FindingTags, fixLine, Spotlight } from "@/components/v5/Finding";
 import { BlurFade } from "@/components/ui/blur-fade";
 import PageShell, { BLACK_PILL, Panel, PILL } from "@/components/v4/PageShell";
 import { HAZARD_TEXT, roomName } from "@/lib/hazards";
-import { detailHref, listedItems, useScans } from "@/lib/results";
+import { guideFor } from "@/lib/guide";
+import { detailHref, isSure, listedItems, useScans } from "@/lib/results";
 
 export default function HazardDetailPage() {
   const params = useParams<{ job: string; hazard: string }>();
@@ -50,7 +50,21 @@ export default function HazardDetailPage() {
   const { hazard, frame, room } = items[index];
   const scan = state.scans.find((s) => s.job_id === jobId)!;
   const sameFrame = scan.hazards.filter((h) => h.frame_id === frame.frame_id);
-  const others = sameFrame.filter((h) => h.hazard_id !== hazardId);
+  // Only findings the results page lists with the rest (not "less sure" or removed ones).
+  const listedIds = new Set(
+    items
+      .filter((i) => i.jobId === jobId && isSure(i.hazard))
+      .map((i) => i.hazard.hazard_id),
+  );
+  const others = sameFrame.filter(
+    (h) => h.hazard_id !== hazardId && listedIds.has(h.hazard_id),
+  );
+  // Numbered the way the results page shows it: among the sure findings, or among the less sure ones.
+  const sureCount = items.filter((i) => isSure(i.hazard)).length;
+  const thisSure = isSure(hazard);
+  const position = thisSure
+    ? `${index + 1} of ${sureCount}`
+    : `Less sure · ${index - sureCount + 1} of ${items.length - sureCount}`;
   const prev = items[index - 1];
   const next = items[index + 1];
   const name = HAZARD_TEXT[hazard.type]?.name ?? hazard.type;
@@ -70,9 +84,7 @@ export default function HazardDetailPage() {
             ← All results
           </Link>
           <div className="flex items-center gap-2">
-            <span className="px-2 text-[var(--ss-ink-3)]">
-              {index + 1} of {items.length}
-            </span>
+            <span className="px-2 text-[var(--ss-ink-3)]">{position}</span>
             {prev && (
               <Link
                 href={detailHref(
@@ -103,8 +115,12 @@ export default function HazardDetailPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] lg:items-start">
           <div
             key={hazardId}
-            className="relative w-full overflow-hidden rounded-[20px] bg-[var(--ss-line)] shadow-[0_20px_50px_rgba(62,54,46,0.12)]"
-            style={{ aspectRatio: `${frame.width} / ${frame.height}` }}
+            className="relative mx-auto w-full overflow-hidden rounded-[20px] bg-[var(--ss-line)] shadow-[0_20px_50px_rgba(62,54,46,0.12)]"
+            // Tall phone photos would run below the screen: never taller than about 78% of it.
+            style={{
+              aspectRatio: `${frame.width} / ${frame.height}`,
+              maxWidth: `min(100%, calc(78svh * ${frame.width} / ${frame.height}))`,
+            }}
           >
             <Spotlight
               photo={photo}
@@ -117,7 +133,7 @@ export default function HazardDetailPage() {
                 label: (
                   <Link
                     href={detailHref(jobId, h.hazard_id, state.isExample)}
-                    className="absolute top-2 left-2 rounded-[6px] bg-white/90 px-2 py-0.5 text-[12px] font-medium whitespace-nowrap text-[var(--ss-ink)] hover:underline"
+                    className="absolute top-2 left-2 max-w-[calc(100%-16px)] truncate rounded-[6px] bg-white/90 px-2 py-0.5 text-[12px] font-medium whitespace-nowrap text-[var(--ss-ink)] hover:underline"
                   >
                     {HAZARD_TEXT[h.type]?.name ?? h.type}
                   </Link>
@@ -146,13 +162,26 @@ export default function HazardDetailPage() {
               className="flex flex-col gap-4"
             >
               <div className="flex flex-wrap items-center gap-1.5">
-                <FindingTags hazard={hazard} photo={photo} />
+                <FindingTags
+                  hazard={hazard}
+                  photo={photo}
+                  sure={isSure(hazard)}
+                />
               </div>
               <HazardExplanation hazard={hazard} />
               <p className="m-0 text-[14px] font-medium text-[var(--ss-ink-2)]">
                 {fixLine(hazard.type, hazard.object)}
               </p>
-              <GuideLink className="text-[14px]" />
+              {/* The source this kind of finding comes from, as on the results page. */}
+              <a
+                href={guideFor(hazard.type).source.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[14px] text-[var(--ss-ink-2)] underline underline-offset-4 hover:text-[var(--ss-ink)]"
+              >
+                {guideFor(hazard.type).source.name}
+                {"\u00a0"}↗
+              </a>
             </BlurFade>
 
             {others.length > 0 && (
@@ -168,7 +197,7 @@ export default function HazardDetailPage() {
                         className={`${PILL} !py-1.5 text-[13px]`}
                       >
                         {HAZARD_TEXT[h.type]?.name ?? h.type}
-                        <SeverityPill severity={h.severity} plain />
+                        <SeverityPill severity={h.severity} />
                       </Link>
                     </li>
                   ))}
