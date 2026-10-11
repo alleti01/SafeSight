@@ -3,10 +3,10 @@
 Analysis runs as a background job, so the website can show each step as it happens:
   POST /analyze             multipart: room + photos (one or more) or video (one)  -> 202 {job_id, status, step, done, total}
   GET  /analyze/{job_id}    {job_id, status: queued|working|done|failed, step, done, total, result?, detail?}
-                            steps in order: frames, people, objects, contrast
+                            steps in order: frames, people, objects, contrast (videos: contrast also covers cutting clips)
   POST /live                multipart: room + frame (one camera frame)            -> {"hazards": [...]} (boxes as fractions)
   POST /fix                 json {job_id, hazard_id}                              -> {"hazard_id", "after_url"}
-  GET  /jobs/{job_id}/frames/..., /jobs/{job_id}/outlines/..., /jobs/{job_id}/after/...
+  GET  /jobs/{job_id}/frames/..., /outlines/..., /clips/..., /after/...
   GET  /health
 
 Detection: the fine-tuned detector (DETECTOR, default combo -> combo.json: best fine-tuned run per object type).
@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "scripts"))
 from analyze import SEV_COLOR, Analyzer, analyze_frame, merge, outline_png  # noqa: E402
 from blur_people import blur_people, load_model as load_blur  # noqa: E402
+from clips import make_clips  # noqa: E402
 from extract_frames import extract  # noqa: E402
 
 try:  # HEIC photos straight from iPhones
@@ -223,6 +224,11 @@ def analyze_job(job_id, room, tmp: Path, photo_data, video_path, progress):
         if times:
             item["time_s"] = times[k]
         out_h.append(item)
+    # 5. clips (videos): a few seconds around each moment a hazard was seen, people blurred, plus a box track
+    if video_path is not None and out_h:
+        with _models_lock:
+            make_clips(video_path, out_h, frames, out / "clips", f"{prefix}/clips", an,
+                       lambda img: blur_people(img, blur, dev)[0], dev, lambda d, t: progress("contrast", d, t))
     progress("contrast", 1, 1)
     result = {"job_id": job_id, "room": room, "frames": frames, "hazards": out_h}
     json.dump(result, open(out / "result.json", "w"), indent=2)

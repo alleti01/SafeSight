@@ -6,7 +6,7 @@ Changes here only when both of you are on a call and agree. Add fields; never re
 
 | Request | Sends | Gets back |
 |---|---|---|
-| `POST /analyze` | multipart form: `room` (`bathroom` / `bedroom` / `hallway`) plus either several `photos` or one `video` | `202` with a job: `{ "job_id", "status": "queued" }` (bad input is a `422` straight away) |
+| `POST /analyze` | multipart form: `room` (`bathroom` / `bedroom` / `hallway` / `living_room` / `kitchen` / `stairs`) plus either several `photos` or one `video` | `202` with a job: `{ "job_id", "status": "queued" }` (bad input is a `422` straight away) |
 | `GET /analyze/{job_id}` | nothing | `{ "job_id", "status": "queued" \| "working" \| "done" \| "failed", "step", "done", "total" }`, plus `result` (the shape of `contract.json`) when done or `detail` when failed |
 | `POST /fix` | JSON `{ "job_id": "abc123", "hazard_id": "h1" }` (hazard ids are only unique within a job) | `{ "hazard_id": "h1", "after_url": "/...", "placeholder": true }` |
 
@@ -36,3 +36,20 @@ Labels are the 10 object classes: `rug`, `patterned_floor`, `floor_glare`, `toil
 ## Wording
 
 The backend only says which hazard it found. All caregiver-facing wording (name, reason, fix) lives in `app/`, keyed by `type`.
+
+## Added fields (Oct 11, add-only)
+
+Frames:
+- `time_s` (videos): seconds into the video this frame was taken.
+
+Hazards:
+- `object`: what the object is, one of the model's 16 object types (`toilet`, `rug`, `cable`, ...) or `floor` / `wall` / `floor+wall` for surface hazards.
+- `evidence`: what was measured, e.g. `{"lrv_difference": 4.4}` (light-reflectance difference to its surroundings; under 20 is hard to see, under 10 very hard) or `{"darker_than_floor_by": 49.4}`.
+- `time_s` (videos): seconds into the video where it was seen.
+- `clip_url` (videos): a 3-second H.264 mp4 around that moment, people blurred, no sound.
+- `clip_start_s` (videos): where the clip starts in the original video, in seconds.
+- `track` (videos): the box over the clip, `[[t, left, top, right, bottom, seen], ...]`. `t` is seconds into the clip, the box is fractions of the clip frame, `seen` is 1 when the object is in view and 0 when it isn't (hide the box then). About 5 entries per second; interpolate between them.
+
+`type` also takes: `glass_door`, `door_blends_in`, `window_reflection`, `floor_transition`, `floor_wall_blend`, `patterned_wall`.
+
+`POST /live` (multipart `room` + one camera `frame`) returns `{"hazards": [{type, severity, confidence, object, box}]}` with boxes as fractions of the frame.

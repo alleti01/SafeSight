@@ -44,6 +44,12 @@ export interface Hazard {
   evidence?: Record<string, number | boolean>;
   /** For videos: seconds into the video where this was seen. */
   time_s?: number;
+  /** For videos: a 3-second clip around that moment (people blurred). */
+  clip_url?: string;
+  /** For videos: where the clip starts in the original video, in seconds. */
+  clip_start_s?: number;
+  /** For videos: the box over the clip, [t, left, top, right, bottom, seen]; t in seconds, box as fractions, seen 0|1. */
+  track?: [number, number, number, number, number, number][];
 }
 
 export interface AnalyzeResult {
