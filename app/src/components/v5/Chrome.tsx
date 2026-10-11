@@ -91,7 +91,7 @@ export function Header({
       <nav className="flex w-full items-center justify-between gap-4 px-5 py-4 sm:px-10">
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-v5 text-[22px] font-medium tracking-[-0.02em]"
+          className="flex items-center gap-2.5 font-v5 text-[22px] font-medium tracking-[-0.02em] max-[400px]:gap-2 max-[400px]:text-[19px]"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -118,7 +118,7 @@ export function Header({
           <a
             href="/#check"
             onClick={() => setMenu(false)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--ss-ink)] px-4 py-2.5 text-[14px] font-medium whitespace-nowrap text-white hover:bg-[var(--ss-ink-hover)] sm:px-5"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--ss-ink)] px-4 py-2.5 text-[14px] font-medium whitespace-nowrap text-white hover:bg-[var(--ss-ink-hover)] max-[400px]:px-3.5 max-[400px]:text-[13px] sm:px-5"
           >
             Check a room <span aria-hidden="true">→</span>
           </a>

@@ -15,7 +15,7 @@ import {
   shopLinks,
 } from "@/lib/costs";
 import { HAZARD_TEXT, SEVERITY_LABEL } from "@/lib/hazards";
-import { galleryItems, useScans, type GalleryItem } from "@/lib/results";
+import { listedItems, useScans, type GalleryItem } from "@/lib/results";
 
 // The fix plan, laid out like a plan rather than a stack of cards (after home
 // inspection summaries, the CDC and AARP home checklists, and phased dental
@@ -40,7 +40,8 @@ export default function ReportPage() {
   const state = useScans();
   if (state === null) return null;
 
-  const items: Numbered[] = galleryItems(state.scans).map((item, i) => ({
+  // The plan covers the findings listed as sure on the results page (not less-sure or removed ones).
+  const items: Numbered[] = listedItems(state.scans, { sureOnly: true }).map((item, i) => ({
     ...item,
     n: i + 1,
   }));

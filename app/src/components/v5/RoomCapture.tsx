@@ -397,7 +397,14 @@ export default function RoomCapture({
                 >
                   <path d={d} {...ICON} />
                 </svg>
-                {label}
+                {m === "upload" ? (
+                  <>
+                    <span className="sm:hidden">Upload</span>
+                    <span className="hidden sm:inline">{label}</span>
+                  </>
+                ) : (
+                  label
+                )}
               </button>
             ))}
           </div>

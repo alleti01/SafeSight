@@ -29,6 +29,13 @@ function detail(p: Progress, isVideo: boolean): string {
   return `${Math.min(p.done + 1, p.total)} of ${p.total} ${unit}`;
 }
 
+// The same, in a few characters for narrow screens: "45%", "3/12".
+function compact(p: Progress): string {
+  if (p.total === 0 || (p.step === "contrast" && p.total === 1)) return "";
+  if (p.step === "upload") return `${Math.round((p.done / p.total) * 100)}%`;
+  return `${Math.min(p.done + 1, p.total)}/${p.total}`;
+}
+
 // The "working on it" screen. Left: what's happening, about how long is left
 // and how much was found so far. Right: the frame being checked (people
 // already blurred) above every step, the current one moving.
@@ -86,13 +93,13 @@ export default function AnalysisProgress({
             </p>
 
             <dl className="m-0 mt-4 grid w-full max-w-[460px] grid-cols-3 border-t border-[var(--ss-line)] pt-5">
-              <Stat label={left === null ? "Working" : left > 3 ? "Time left, about" : "Almost done"}>
-                {left === null ? "…" : left > 3 ? clock(left) : "Soon"}
+              <Stat label={left === null ? "Working" : left > 3 ? "Time left" : "Almost done"}>
+                {left === null ? "…" : left > 3 ? `~${clock(left)}` : "Soon"}
               </Stat>
               <Stat label="Found so far" divider>
                 {found === undefined ? "–" : found}
               </Stat>
-              <Stat label={isVideo ? "Frames checked" : "Photos checked"} divider>
+              <Stat label={isVideo ? "Frames done" : "Photos done"} divider>
                 {progress && (progress.step === "objects" || progress.step === "contrast") && progress.total > 0
                   ? progress.step === "contrast"
                     ? "All"
@@ -155,7 +162,7 @@ export default function AnalysisProgress({
                       data-state={state}
                       className={`relative flex items-center gap-3 overflow-hidden rounded-[10px] px-2.5 py-2.5 ${state === "now" ? "bg-[var(--ss-soft)]" : ""}`}
                     >
-                      <span className="w-[68px] shrink-0">
+                      <span className="w-[64px] shrink-0 sm:w-[68px]">
                         {state === "done" ? (
                           <Tag tone="good">Done</Tag>
                         ) : state === "now" ? (
@@ -164,11 +171,25 @@ export default function AnalysisProgress({
                           <Tag tone="plain">Waiting</Tag>
                         )}
                       </span>
-                      <span className={`text-[15px] ${state === "next" ? "text-[var(--ss-faint)]" : ""}`}>
-                        {step === "contrast" && isVideo ? "Checking contrast, making clips" : LABEL[step]}
+                      <span className={`min-w-0 text-[15px] whitespace-nowrap ${state === "next" ? "text-[var(--ss-faint)]" : ""}`}>
+                        {step === "contrast" && isVideo ? (
+                          <>
+                            <span className="sm:hidden">Contrast and clips</span>
+                            <span className="hidden sm:inline">Checking contrast, making clips</span>
+                          </>
+                        ) : (
+                          LABEL[step]
+                        )}
                       </span>
-                      <span className="ml-auto text-[13px] text-[var(--ss-ink-3)]">
-                        {state === "now" && progress ? detail(progress, isVideo) : ""}
+                      <span className="ml-auto shrink-0 text-[13px] text-[var(--ss-ink-3)]">
+                        {state === "now" && progress ? (
+                          <>
+                            <span className="sm:hidden">{compact(progress)}</span>
+                            <span className="hidden sm:inline">{detail(progress, isVideo)}</span>
+                          </>
+                        ) : (
+                          ""
+                        )}
                       </span>
                       {state === "now" && (
                         <motion.span

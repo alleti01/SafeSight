@@ -7,7 +7,7 @@ import { FindingTags, fixLine, Spotlight } from "@/components/v5/Finding";
 import { BlurFade } from "@/components/ui/blur-fade";
 import PageShell, { BLACK_PILL, Panel, PILL } from "@/components/v4/PageShell";
 import { HAZARD_TEXT } from "@/lib/hazards";
-import { detailHref, galleryItems, useScans } from "@/lib/results";
+import { detailHref, listedItems, useScans } from "@/lib/results";
 
 export default function HazardDetailPage() {
   const params = useParams<{ job: string; hazard: string }>();
@@ -16,7 +16,7 @@ export default function HazardDetailPage() {
 
   const jobId = decodeURIComponent(params.job);
   const hazardId = decodeURIComponent(params.hazard);
-  const items = galleryItems(state.scans);
+  const items = listedItems(state.scans);
   const index = items.findIndex((i) => i.jobId === jobId && i.hazard.hazard_id === hazardId);
 
   if (index === -1) {

@@ -64,6 +64,23 @@ export function isSure(h: AnalyzeResult["hazards"][number]): boolean {
   return h.object ? h.confidence >= (SURE_AT[h.object] ?? 0) : true;
 }
 
+/** Findings the caregiver marked "not right" this session (see the results page). */
+export function removedKeys(): string[] {
+  try {
+    return JSON.parse(sessionStorage.getItem("safesight:removed") ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+/** The findings as the results page lists them: sure ones first, then less sure, without removed ones. */
+export function listedItems(scans: AnalyzeResult[], { sureOnly = false } = {}): GalleryItem[] {
+  const removed = removedKeys();
+  const items = galleryItems(scans).filter((i) => !removed.includes(i.key));
+  const sure = items.filter((i) => isSure(i.hazard));
+  return sureOnly ? sure : [...sure, ...items.filter((i) => !isSure(i.hazard))];
+}
+
 export function detailHref(jobId: string, hazardId: string, example = false) {
   return `/results/${encodeURIComponent(jobId)}/${encodeURIComponent(hazardId)}${example ? "?example" : ""}`;
 }
