@@ -60,7 +60,6 @@
   --font-v3: var(--font-lexend), system-ui, sans-serif;
   --font-v4: var(--font-manrope), system-ui, sans-serif;
   --font-v5: var(--font-geist), system-ui, sans-serif;
-  --font-v5-serif: var(--font-iserif), Georgia, serif;
 }
 
 html {
@@ -100,7 +99,17 @@ h3 {
 
 /* Paper: white page, keep the hazard colors, no site chrome. */
 @page {
-  margin: 14mm;
+  margin: 14mm 14mm 16mm;
+  @bottom-left {
+    content: "SafeSight";
+    font: 7.5pt Inter, sans-serif;
+    color: #8b7d6f;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font: 7.5pt Inter, sans-serif;
+    color: #8b7d6f;
+  }
 }
 
 @media print {
@@ -115,6 +124,17 @@ h3 {
 }
 
 /* A row that slides left by half its width: drawn twice, it loops with no seam. */
+/* The live camera's scan line, top to bottom and back. */
+@keyframes scan {
+  0%,
+  100% {
+    top: 0;
+  }
+  50% {
+    top: calc(100% - 2px);
+  }
+}
+
 @keyframes marquee {
   from {
     transform: translateX(0);

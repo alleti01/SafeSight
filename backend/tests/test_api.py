@@ -105,3 +105,25 @@ def test_fix_finds_a_finished_job(client):
     r = client.post("/fix", json={"job_id": "demo1234", "hazard_id": "h1"})
     assert r.json() == {"hazard_id": "h1", "after_url": "/jobs/demo1234/frames/f01.jpg", "placeholder": True}
     assert client.post("/fix", json={"job_id": "demo1234", "hazard_id": "h9"}).status_code == 404
+
+
+def test_live_frame_comes_back_with_boxes_as_fractions(client):
+    r = client.post("/live", data={"room": "bathroom"}, files={"frame": ("f.jpg", PHOTO.read_bytes(), "image/jpeg")})
+    assert r.status_code == 200
+    hazards = r.json()["hazards"]
+    assert isinstance(hazards, list)
+    for h in hazards:
+        assert set(h) == {"type", "severity", "confidence", "box"}
+        assert all(0 <= v <= 1 for v in h["box"])
+        assert h["box"][0] < h["box"][2] and h["box"][1] < h["box"][3]
+
+
+def test_live_frame_is_not_kept(client):
+    before = job_dirs()
+    client.post("/live", data={"room": "hallway"}, files={"frame": ("f.jpg", PHOTO.read_bytes(), "image/jpeg")})
+    assert job_dirs() == before
+
+
+def test_live_refuses_a_non_picture_and_an_unknown_room(client):
+    assert client.post("/live", data={"room": "hallway"}, files={"frame": ("f.jpg", b"nope", "image/jpeg")}).status_code == 422
+    assert client.post("/live", data={"room": "garage"}, files={"frame": ("f.jpg", PHOTO.read_bytes(), "image/jpeg")}).status_code == 422

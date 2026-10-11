@@ -48,13 +48,15 @@ const center = (p: SitePhoto, box: Hazard["box"]) => {
 
 // A photo in grey with the given findings in color, filling its container.
 // Photo and masks are cropped (and zoomed) the same way, so the color stays
-// on its object.
+// on its object. `bare` leaves out the grey photo, for laying the findings
+// over a photo drawn some other way.
 export function Isolated({
   photo,
   hazards,
   focus,
   zoom = 1,
   alt = "",
+  bare = false,
 }: {
   photo: SitePhoto;
   hazards: Hazard[];
@@ -62,13 +64,16 @@ export function Isolated({
   /** Enlarge around the focus, for small thumbnails. */
   zoom?: number;
   alt?: string;
+  bare?: boolean;
 }) {
   const pos = focus ? center(photo, focus) : "50% 50%";
   const zoomed = zoom === 1 ? undefined : { transform: `scale(${zoom})`, transformOrigin: pos };
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={photo.src} alt={alt} className="absolute inset-0 h-full w-full object-cover grayscale" style={{ objectPosition: pos, ...zoomed }} />
+      {!bare && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo.src} alt={alt} className="absolute inset-0 h-full w-full object-cover grayscale" style={{ objectPosition: pos, ...zoomed }} />
+      )}
       {hazards.map((h) => {
         const outline = `url("${h.outline_url}")`;
         return (

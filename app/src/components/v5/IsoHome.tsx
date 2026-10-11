@@ -146,9 +146,9 @@ export default function IsoHome() {
         return (
           <motion.g
             key={l.text}
-            initial={reduce ? false : { opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: reduce ? 0 : l.delay, ease: [0.22, 1, 0.36, 1] }}
+            transition={reduce ? { duration: 0 } : { duration: 0.6, delay: l.delay, ease: [0.22, 1, 0.36, 1] }}
           >
             <rect x={lx - w / 2} y={ly - 15} width={w} height={30} rx={9} fill="#efe5d8" />
             <text x={lx} y={ly + 5} textAnchor="middle" fontSize={13} fontWeight={500} fill="#1d1d1b" fontFamily="var(--font-inter5), sans-serif">

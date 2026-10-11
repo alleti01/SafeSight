@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import { Eyebrow } from "@/components/v4/Sections";
+import { Eyebrow } from "@/components/v5/Chrome";
 import PageShell, { Panel } from "@/components/v4/PageShell";
 import { STEPS, type Progress, type Step } from "@/lib/brain";
 
@@ -26,11 +26,11 @@ export default function AnalysisProgress({ room, progress }: { room: string; pro
 
   return (
     <PageShell>
-      <Panel className="bg-[radial-gradient(ellipse_at_85%_100%,var(--ss-glow)_0%,var(--ss-sheet)_60%)]">
+      <Panel>
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-start">
           <div className="flex flex-col items-start gap-5">
             <Eyebrow>Checking your room</Eyebrow>
-            <h1 className="m-0 text-[clamp(36px,4.6vw,60px)] leading-[1.08] font-normal tracking-[-0.02em]">
+            <h1 className="m-0 text-[clamp(36px,4.6vw,60px)] leading-[1.08] font-v5 font-medium tracking-[-0.03em]">
               Looking around the <span className="capitalize">{room}</span>
             </h1>
             <p className="m-0 max-w-[380px] text-[15px] leading-relaxed text-[var(--ss-ink-2)]">
