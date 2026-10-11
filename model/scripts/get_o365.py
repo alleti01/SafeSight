@@ -59,11 +59,16 @@ def main():
 
     # which zip holds each file: read every zip's directory (small range requests)
     files = {}
-    for k in range(1, 21):
+    idx = O / "zip_index.json"
+    if idx.exists():
+        files = {k: tuple(v) for k, v in json.load(open(idx)).items()}
+    for k in ([] if files else range(1, 21)):
         url = hf_hub_url("hieupth/objects365_384_squared", f"images_part{k:03d}.zip", repo_type="dataset")
         with RemoteZip(url) as z:
             for name in z.namelist():
                 files[name.split("/")[-1]] = (url, name)
+    if not idx.exists():
+        json.dump(files, open(idx, "w"))
     print(len(files), "files indexed")
 
     OUT_I.mkdir(parents=True, exist_ok=True)
@@ -74,6 +79,16 @@ def main():
         if base in files:
             by_zip[files[base][0]].append((iid, im, files[base][1]))
 
+    def read_retry(z, member, tries=8):
+        import time
+        for t in range(tries):
+            try:
+                return z.read(member)
+            except Exception:  # Hugging Face rate limit (429) or a dropped connection: back off and retry
+                if t == tries - 1:
+                    raise
+                time.sleep(min(60, 5 * 2 ** t))
+
     def fetch(item):
         url, items = item
         n = 0
@@ -81,7 +96,7 @@ def main():
             for iid, im, member in items:
                 dest = OUT_I / f"o365__{iid}.jpg"
                 if not dest.exists():
-                    dest.write_bytes(z.read(member))
+                    dest.write_bytes(read_retry(z, member))
                 rows = []
                 for name, (x, y, w, h) in anns[iid]:  # this mirror stores boxes as fractions (0-1) of the image
                     lab = TARGET.get(name) or OTHER.get(name)
@@ -91,7 +106,7 @@ def main():
                 n += 1
         return n
 
-    with ThreadPoolExecutor(10) as ex:
+    with ThreadPoolExecutor(3) as ex:  # fewer parallel streams: 10 tripped the rate limit
         print("fetched", sum(ex.map(fetch, by_zip.items())))
 
 
