@@ -1,9 +1,9 @@
 #!/bin/bash
 # Start the SafeSight brain on this machine and expose it with a temporary public Cloudflare link.
-# Usage: scripts/serve.sh [detector]   (default: run 5 weights; "combo" uses combo.json)
+# Usage: scripts/serve.sh [detector]   (default: combo -> combo.json = combo_v4, per-label best model)
 # Stop with Ctrl+C (closes the service and the public link).
 cd "$(dirname "$0")/.."
-DET=${1:-runs/run5_world/weights/best.pt}
+DET=${1:-combo}
 DETECTOR=$DET .venv/bin/uvicorn service:app --host 127.0.0.1 --port 8000 > data/service.log 2>&1 &
 SVC=$!
 trap 'kill $SVC $TUN 2>/dev/null; echo stopped' EXIT
