@@ -120,7 +120,7 @@ export default function ResultsPage() {
                       style={{ aspectRatio: `${f.width} / ${f.height}` }}
                     />
                     {f.time_s !== undefined && (
-                      <span className="text-[13px] text-[var(--ss-ink-3)] tabular-nums">
+                      <span className="text-[13px] text-[var(--ss-ink-3)]">
                         {Math.floor(f.time_s / 60)}:
                         {String(Math.floor(f.time_s % 60)).padStart(2, "0")}{" "}
                         into the video
@@ -345,9 +345,7 @@ function Chip({
     >
       {children}
       {count !== undefined && (
-        <span
-          className={`tabular-nums ${on ? "text-white/70" : "text-[var(--ss-ink-3)]"}`}
-        >
+        <span className={` ${on ? "text-white/70" : "text-[var(--ss-ink-3)]"}`}>
           {count}
         </span>
       )}

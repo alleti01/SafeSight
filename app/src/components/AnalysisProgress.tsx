@@ -52,7 +52,7 @@ export default function AnalysisProgress({ room, progress }: { room: string; pro
                 >
                   <span className="flex items-center gap-4">
                     <span
-                      className={`grid size-9 shrink-0 place-items-center rounded-full text-[13px] tabular-nums ${
+                      className={`grid size-9 shrink-0 place-items-center rounded-full text-[13px] ${
                         state === "next" ? "border border-[var(--ss-faint)] text-[var(--ss-faint)]" : "bg-[var(--ss-ink)] text-white"
                       }`}
                     >
@@ -60,7 +60,7 @@ export default function AnalysisProgress({ room, progress }: { room: string; pro
                     </span>
                     <span className={`text-[clamp(17px,1.6vw,20px)] ${state === "next" ? "text-[var(--ss-faint)]" : ""}`}>{LABEL[step]}</span>
                   </span>
-                  <span className="text-[14px] text-[var(--ss-ink-3)] tabular-nums">
+                  <span className="text-[14px] text-[var(--ss-ink-3)]">
                     {state === "done" ? "Done" : state === "now" && progress ? detail(progress) : ""}
                   </span>
                   {state === "now" && (

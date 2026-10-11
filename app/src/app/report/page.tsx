@@ -198,7 +198,7 @@ export default function ReportPage() {
                     <span className="text-[14px] whitespace-nowrap text-[var(--ss-ink-2)] max-sm:hidden print:inline print:text-[9pt]">
                       {SEVERITY_LABEL[i.hazard.severity]}
                     </span>
-                    <span className="w-[104px] whitespace-nowrap text-right tabular-nums print:w-[68px]">
+                    <span className="w-[104px] whitespace-nowrap text-right print:w-[68px]">
                       {money(materials(plan(i)))}
                     </span>
                   </li>
@@ -319,14 +319,14 @@ export default function ReportPage() {
                           ))}
                         </span>
                       )}
-                      <span className="w-[104px] whitespace-nowrap text-right tabular-nums print:w-[68px]">
+                      <span className="w-[104px] whitespace-nowrap text-right print:w-[68px]">
                         {money([c.low, c.high])}
                       </span>
                     </li>
                   ))}
                   <li className="flex items-baseline justify-between gap-3 border-t border-[var(--ss-ink)] pt-2 font-medium print:pt-1">
                     <span>Everything on the list</span>
-                    <span className="tabular-nums">{money(totals.diy)}</span>
+                    <span className="">{money(totals.diy)}</span>
                   </li>
                 </ul>
               </section>
@@ -341,7 +341,7 @@ export default function ReportPage() {
 function Total({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col gap-0.5 border-[var(--ss-line)] px-1 py-4 sm:border-l sm:px-5 sm:first:border-l-0 sm:first:pl-0 print:border-l print:px-3 print:py-2 print:first:border-l-0 print:first:pl-0">
-      <span className="font-v5 text-[30px] leading-tight font-medium tracking-[-0.02em] tabular-nums print:text-[17pt]">
+      <span className="font-v5 text-[30px] leading-tight font-medium tracking-[-0.02em] print:text-[17pt]">
         {value}
       </span>
       <span className="text-[13px] text-[var(--ss-ink-3)] print:text-[8.5pt]">
@@ -423,7 +423,7 @@ function Row({
         <div className={photo ? "mt-1" : ""}>{children}</div>
       </div>
       {cost && (
-        <span className="w-[104px] whitespace-nowrap shrink-0 pt-0.5 text-right tabular-nums print:w-[68px]">
+        <span className="w-[104px] whitespace-nowrap shrink-0 pt-0.5 text-right print:w-[68px]">
           {cost}
         </span>
       )}
@@ -451,7 +451,7 @@ function Box() {
 
 function Num({ n }: { n: number }) {
   return (
-    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--ss-ink)] text-[12px] font-medium text-white tabular-nums print:size-[13pt] print:text-[8pt]">
+    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--ss-ink)] text-[12px] font-medium text-white print:size-[13pt] print:text-[8pt]">
       {n}
     </span>
   );

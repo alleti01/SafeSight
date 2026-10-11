@@ -52,7 +52,7 @@ export default function HazardDetailPage() {
             ← All results
           </Link>
           <div className="flex items-center gap-2">
-            <span className="px-2 text-[var(--ss-ink-3)] tabular-nums">
+            <span className="px-2 text-[var(--ss-ink-3)]">
               {index + 1} of {items.length}
             </span>
             {prev && (
