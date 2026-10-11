@@ -1,0 +1,18 @@
+# Keep Docker builds small (Railway clones from git, so this mostly matters for local builds)
+.git
+**/node_modules
+**/.next
+**/.venv
+**/__pycache__
+model/data
+model/runs
+model/weights
+model/outputs
+backend/jobs
+weights
+*.mp4
+*.mov
+*.MOV
+*.pt
+.env
+**/.env*
