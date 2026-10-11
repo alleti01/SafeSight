@@ -81,7 +81,7 @@ export default function RoomCapture({
   const record = useRef<HTMLInputElement>(null);
   const choose = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  const [mode, setMode] = useState<"live" | "upload">("live");
+  const [mode, setMode] = useState<"live" | "upload">("upload");
 
   // The in-page camera.
   const live = useRef<HTMLVideoElement>(null);
@@ -367,14 +367,14 @@ export default function RoomCapture({
             {(
               [
                 [
+                  "upload",
+                  "Upload video or photos",
+                  "M4 5h16v14H4z M4 15l4-4 4 4 3-3 5 5 M15 9h.01",
+                ],
+                [
                   "live",
                   "Scan live",
                   "M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10",
-                ],
-                [
-                  "upload",
-                  "Upload media",
-                  "M4 5h16v14H4z M4 15l4-4 4 4 3-3 5 5 M15 9h.01",
                 ],
               ] as const
             ).map(([m, label, d]) => (
