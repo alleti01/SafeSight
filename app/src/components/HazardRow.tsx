@@ -23,6 +23,23 @@ const OBJECT_NAME: Record<string, string> = {
 };
 const objectLabel = (o?: string) => (o ? OBJECT_NAME[o] ?? o.charAt(0).toUpperCase() + o.slice(1).replace(/_/g, " ") : "");
 
+const CLIP_FIRST = 0.75; // in view at least this much of the clip: show the clip first
+const CLIP_OFFER = 0.4; // less than this: photo only
+
+// Findings decided by the contrast check, with the measured gap in light
+// reflectance points (0-100), for a tag in the row's header.
+const pts = (n: number) => `${Math.round(n)} ${Math.round(n) === 1 ? "pt" : "pts"}`;
+
+function contrastNote(h: Hazard): string | null {
+  const e = h.evidence ?? {};
+  if (h.type === "dark_rug" && typeof e.darker_than_floor_by === "number") return `Darker than floor · ${pts(e.darker_than_floor_by)}`;
+  const byContrast = ["bathroom_fitting_blends_in", "furniture_blends_in", "door_blends_in", "floor_wall_blend", "floor_transition"];
+  if (!byContrast.includes(h.type)) return null;
+  const d = typeof e.lrv_difference === "number" ? e.lrv_difference : h.lrv ? Math.abs(h.lrv.object - h.lrv.around) : null;
+  if (d === null) return "Low contrast";
+  return h.type === "floor_transition" ? `Floor change · ${pts(d)}` : `Low contrast · ${pts(d)}`;
+}
+
 // What the light reflectance numbers mean, in a sentence.
 function lrvSentence(h: Hazard): string | null {
   const l = h.lrv;
@@ -66,8 +83,14 @@ export default function HazardRow({
   const text = hazardText(hazard.type);
   const guide = guideFor(hazard.type);
   const photo = spotPhoto(frame);
-  const hasClip = Boolean(hazard.clip_url && hazard.track?.length);
-  const [view, setView] = useState<"clip" | "photo">(hasClip ? "clip" : "photo");
+  // How much of the clip the object is actually in view. Short sightings show
+  // the photo first (a box that's mostly hidden isn't worth watching); very
+  // short ones don't offer the clip at all.
+  const track = hazard.track ?? [];
+  const inView = track.length ? track.filter((e) => e[5]).length / track.length : 0;
+  const hasClip = Boolean(hazard.clip_url) && inView >= CLIP_OFFER;
+  const [view, setView] = useState<"clip" | "photo">(hasClip && inView >= CLIP_FIRST ? "clip" : "photo");
+  const contrastTag = contrastNote(hazard);
   const [media, size] = useSize<HTMLDivElement>();
   const contrast = plainContrast(hazard);
   const lrv = lrvSentence(hazard);
@@ -121,6 +144,11 @@ export default function HazardRow({
           <span className="font-v5 text-[var(--ss-ink-3)]">{String(number).padStart(2, "0")}</span>
           <span className="rounded-full bg-[var(--ss-chip)] px-3 py-1 capitalize">{roomName(room)}</span>
           <SeverityPill severity={hazard.severity} />
+          {contrastTag && (
+            <span className="rounded-full border border-[var(--ss-line)] px-3 py-1 text-[12px] font-medium text-[var(--ss-ink-2)]">
+              {contrastTag}
+            </span>
+          )}
         </div>
 
         <div className="flex flex-col gap-3">
