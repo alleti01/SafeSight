@@ -254,9 +254,9 @@ export default function ReportPage() {
             {shopping.size > 0 && (
               <section
                 aria-label="Shopping list"
-                className="break-inside-avoid rounded-[6px] border-2 border-dashed border-[var(--ss-faint)] p-5 print:p-3"
+                className="break-inside-avoid rounded-[6px] border-2 border-dashed border-[var(--ss-faint)] p-5 max-sm:p-4 print:p-3"
               >
-                <div className="mb-2 flex items-baseline justify-between gap-3">
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <h2 className="m-0 font-v5 text-[20px] font-medium tracking-[-0.01em] print:text-[12pt]">
                     <span
                       aria-hidden="true"
@@ -277,31 +277,33 @@ export default function ReportPage() {
                       className="flex items-baseline gap-3 border-t border-[var(--ss-line)] py-2 print:py-1"
                     >
                       <Box />
-                      <span className="flex-1">
-                        {c.name}
-                        <span className="text-[var(--ss-ink-3)]">
-                          {" "}
-                          · for {c.for.map((n) => `#${n}`).join(", ")}
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
+                        <span className="sm:flex-1">
+                          {c.name}
+                          <span className="text-[var(--ss-ink-3)]">
+                            {" "}
+                            · for {c.for.map((n) => `#${n}`).join(", ")}
+                          </span>
                         </span>
+                        {c.shop && (
+                          <span className="text-[14px] text-[var(--ss-ink-3)] print:hidden">
+                            {shopLinks(c.shop).map((s, k) => (
+                              <span key={s.store}>
+                                {k > 0 && " · "}
+                                <a
+                                  href={s.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="underline underline-offset-2 hover:text-[var(--ss-ink)]"
+                                >
+                                  {s.store}
+                                </a>
+                              </span>
+                            ))}
+                          </span>
+                        )}
                       </span>
-                      {c.shop && (
-                        <span className="text-[14px] text-[var(--ss-ink-3)] print:hidden">
-                          {shopLinks(c.shop).map((s, k) => (
-                            <span key={s.store}>
-                              {k > 0 && " · "}
-                              <a
-                                href={s.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="underline underline-offset-2 hover:text-[var(--ss-ink)]"
-                              >
-                                {s.store}
-                              </a>
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                      <span className="w-[104px] whitespace-nowrap text-right print:w-[68px]">
+                      <span className="w-[104px] shrink-0 text-right whitespace-nowrap max-sm:w-auto print:w-[68px]">
                         {money([c.low, c.high])}
                       </span>
                     </li>
@@ -403,9 +405,10 @@ function Row({
           </span>
         )}
         <div className={photo ? "mt-1" : ""}>{children}</div>
+        {cost && <span className="pl-6 font-medium sm:hidden">{cost}</span>}
       </div>
       {cost && (
-        <span className="w-[104px] whitespace-nowrap shrink-0 pt-0.5 text-right print:w-[68px]">
+        <span className="w-[104px] shrink-0 pt-0.5 text-right whitespace-nowrap max-sm:hidden print:w-[68px]">
           {cost}
         </span>
       )}

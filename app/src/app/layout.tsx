@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible, Geist, IBM_Plex_Mono, Inter, Manrope, Newsreader } from "next/font/google";
 import "./globals.css";
 
@@ -13,8 +13,19 @@ const heading = Newsreader({ variable: "--font-heading", subsets: ["latin"], wei
 const code = IBM_Plex_Mono({ variable: "--font-code", subsets: ["latin"], weight: ["400", "500"] });
 
 export const metadata: Metadata = {
-  title: "SafeSight — dementia-friendly homes, checked room by room",
+  // Short, because iPhone uses the title as the name under a home-screen icon.
+  title: "SafeSight",
   description: "Find things at home that may be confusing or risky for someone with dementia.",
+  // Added to a home screen, it opens full screen with its own name and icon.
+  appleWebApp: { capable: true, title: "SafeSight", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
+};
+
+// The browser bar takes the paper color; the page may use the whole screen,
+// with env(safe-area-inset-*) keeping controls clear of the notch.
+export const viewport: Viewport = {
+  themeColor: "#f4ede4",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

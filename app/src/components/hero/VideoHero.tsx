@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import type { HazardType, Severity } from "@/lib/contract";
 import { HAZARD_TEXT } from "@/lib/hazards";
 import { SETTLES_AT, TRACKS } from "./hero-track";
@@ -133,41 +133,43 @@ export default function VideoHero({ onNav }: Props) {
           </div>
 
           {/* What we look for. An entry lights up when its object is found,
-              and opens out into its explanation while the object is in view. */}
+              and opens out into its explanation while the object is in view.
+              On phones only the latest one opens, so the cards don't cover the film. */}
           <ul className="pointer-events-none absolute inset-x-3 bottom-3 m-0 flex list-none flex-wrap items-end justify-center gap-1.5 p-0 sm:inset-x-5 sm:bottom-5">
             {TRACKS.map((track) => {
               const text = HAZARD_TEXT[track.type];
               const isFound = found.includes(track.type);
               const isOpen = active.includes(track.type);
+              const isLatest = active[active.length - 1] === track.type;
               return (
                 <li
                   key={track.type}
-                  className={`rounded-[3px] px-3.5 py-2 backdrop-blur-md transition-colors duration-500 ${
+                  className={`rounded-[3px] px-3.5 py-2 backdrop-blur-md transition-colors duration-500 max-sm:px-2.5 max-sm:py-1.5 ${
                     isFound ? "bg-white/92 text-[var(--ss-ink)] shadow-[0_6px_20px_rgba(20,16,12,0.16)]" : "bg-black/30 text-white/75"
-                  } ${isOpen ? "max-w-[300px]" : "max-w-[260px]"}`}
+                  } ${isOpen ? `max-w-[300px] ${isLatest ? "w-[300px]" : "sm:w-[300px]"}` : "max-w-[260px]"}`}
                   aria-current={isOpen ? "true" : undefined}
                 >
                   <span className="flex items-center gap-2 font-v5 text-[13px] leading-tight font-medium tracking-[-0.01em] whitespace-nowrap">
                     <span className="size-1.5 shrink-0" style={{ background: isFound ? DOT[track.severity] : "rgba(255,255,255,0.45)" }} />
                     {text.name}
                   </span>
-                  <AnimatePresence initial={false}>
-                    {isOpen && (
-                      <motion.p
-                        key="why"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-                        className="m-0 overflow-hidden text-[12px] leading-snug text-[var(--ss-ink-2)]"
-                      >
-                        <span className="block pt-1.5">
-                          {text.why}
-                          {EXTRA[track.type] && <> {EXTRA[track.type]}</>}
-                        </span>
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
+                  {/* Opens with a CSS row transition rather than a height
+                      animation: Motion measures an "auto" height by putting
+                      the scroll back, which cut short any smooth scroll (a
+                      nav link) under way while the film played. */}
+                  <div
+                    aria-hidden={!isOpen}
+                    className={`grid [contain:inline-size] transition-[grid-template-rows,opacity] duration-[400ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none ${
+                      isOpen ? `grid-rows-[1fr] opacity-100 ${isLatest ? "" : "max-sm:grid-rows-[0fr] max-sm:opacity-0"}` : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
+                    <p className="m-0 min-h-0 overflow-hidden text-[12px] leading-snug text-[var(--ss-ink-2)]">
+                      <span className="block pt-1.5">
+                        {text.why}
+                        {EXTRA[track.type] && <> {EXTRA[track.type]}</>}
+                      </span>
+                    </p>
+                  </div>
                 </li>
               );
             })}

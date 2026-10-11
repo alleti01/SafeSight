@@ -28,8 +28,7 @@ Then set `NEXT_PUBLIC_BRAIN_URL=http://localhost:8000` in `app/.env.local`.
 | Objects to hazards: mirrors and floor clutter always; bins only in bathrooms | Done |
 | Outline each object (`contrast.py`: SAM 2.1 tiny, prompted with the detector's box; saved as a PNG mask at `outline_url`) | Done |
 | Contrast checks (`contrast.py`: Lab color inside the outline vs. a ring around it): dark rug (≥20 L* darker than the floor) → high, other rugs → low; toilet or fitting ΔE < 9 → high, < 18 → medium; furniture ΔE < 18 → medium; stairs with no row-to-row lightness jump ≥ 10 → high | Done |
-| Objects to hazards (SAM 2 outline + contrast checks) | TODO |
-| Merge repeats, rate severity | TODO |
+| Merge repeats (`merge_repeats`: the same kind of hazard a few seconds apart and not far across the frame is one thing; in photos, only boxes in the same place; one card each, in its clearest frame, at its most serious severity) | Done |
 | "After" pictures (`/fix`) | Placeholder: returns the original frame |
 
 Photos are read into memory. A video is written to a temporary file only while its frames are picked, then deleted. Processed frames live under `jobs/<job_id>/` and are deleted after an hour.

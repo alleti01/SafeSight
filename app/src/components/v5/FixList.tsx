@@ -89,14 +89,50 @@ export function FindingsRow({ findings }: { findings: Finding[] }) {
         })}
       </div>
 
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-3 lg:hidden">
-        {findings.map((f, i) => (
-          <div key={`${f.type}-${f.hazard.hazard_id}`} className="w-[85vw] max-w-[400px] shrink-0 snap-center">
-            <Open f={f} n={i + 1} total={n} />
-          </div>
-        ))}
-      </div>
+      <Strips findings={findings} />
     </>
+  );
+}
+
+// Narrow screens: the row turned on its side. Each finding is a strip across
+// the screen with its name in large type; tapping one opens it into its card
+// (one open at a time). It opens with a CSS row transition, not a measured
+// height animation, so it can't interrupt a scroll under way.
+function Strips({ findings }: { findings: Finding[] }) {
+  const [open, setOpen] = useState<number | null>(0);
+  const n = findings.length;
+  return (
+    <div className="border-y border-[var(--ss-ink)]/20 lg:hidden">
+      {findings.map((f, i) => {
+        const on = open === i;
+        return (
+          <div key={`${f.type}-${f.hazard.hazard_id}`} className="border-t border-[var(--ss-ink)]/20 first:border-t-0">
+            <button
+              type="button"
+              aria-expanded={on}
+              onClick={() => setOpen(on ? null : i)}
+              className={`flex w-full items-end justify-between gap-3 px-5 text-left transition-colors duration-300 ${
+                on ? "bg-white pt-5 pb-1" : "bg-[var(--ss-soft)] py-4 active:bg-[#e9dccb]"
+              }`}
+            >
+              <span className="font-v5 text-[clamp(28px,9vw,40px)] leading-[0.95] font-medium tracking-[-0.02em]">{POINTS[f.type]}</span>
+              <span className="shrink-0 pb-1 font-v5 text-[13px] text-[var(--ss-ink-3)]">
+                {i + 1} of {n}
+              </span>
+            </button>
+            <div
+              aria-hidden={!on}
+              inert={!on}
+              className={`grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${on ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <Open f={f} n={i + 1} total={n} strip />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -134,11 +170,12 @@ function Vertical({ text }: { text: string }) {
 
 // An open finding: its name, why it may be a problem, the photo spotlit, and
 // the answers as tags (open each for why), with the fix price.
-function Open({ f, n, total }: { f: Finding; n: number; total: number }) {
+// `strip`: inside a phone strip, which already shows the name and number.
+function Open({ f, n, total, strip = false }: { f: Finding; n: number; total: number; strip?: boolean }) {
   const [frame, { w: fw, h: fh }] = useSize<HTMLDivElement>();
   return (
-    <div className="relative flex h-full flex-col gap-3 bg-white p-5 shadow-[0_-20px_50px_rgba(62,54,46,0.08)] max-lg:rounded-[18px]">
-      <div className="flex items-start justify-between gap-3">
+    <div className={`relative flex h-full flex-col gap-3 bg-white p-5 ${strip ? "pt-2" : "shadow-[0_-20px_50px_rgba(62,54,46,0.08)]"}`}>
+      <div className={`flex items-start justify-between gap-3 ${strip ? "hidden" : ""}`}>
         <span className="font-v5 text-[24px] leading-tight font-medium tracking-[-0.01em]">{HAZARD_TEXT[f.type].name}</span>
         <span className="shrink-0 pt-1 font-v5 text-[13px] text-[var(--ss-ink-3)]">
           {n} of {total}

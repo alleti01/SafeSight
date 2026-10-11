@@ -71,7 +71,9 @@ function Person({ at, shirt = "#865d36", delay = 0 }: { at: P; shirt?: string; d
   );
 }
 
-type Label = { text: string; at: P; delay: number };
+// `phone` nudges a label (in drawing units) where the labels are drawn larger
+// on phones, so neighbours don't overlap.
+type Label = { text: string; at: P; delay: number; phone?: [number, number] };
 
 export default function IsoHome() {
   const reduce = useReducedMotion();
@@ -108,9 +110,9 @@ export default function IsoHome() {
 
   const labels: Label[] = [
     { text: "Dark rug", at: [-1.3, 5.7, 2.3], delay: 0.6 },
-    { text: "Furniture blends in", at: [-3.2, 7.5, 3.6], delay: 0.9 },
-    { text: "Clutter on the floor", at: [2.3, 7.4, 2.2], delay: 1.2 },
-    { text: "Stair edges", at: [7.4, 6.6, 4.6], delay: 1.5 },
+    { text: "Furniture blends in", at: [-3.2, 7.5, 3.6], delay: 0.9, phone: [-10, -30] },
+    { text: "Clutter on the floor", at: [2.3, 7.4, 2.2], delay: 1.2, phone: [-48, 14] },
+    { text: "Stair edges", at: [7.4, 6.6, 4.6], delay: 1.5, phone: [56, -10] },
     { text: "Toilet blends in", at: [5, 0.6, 7.6], delay: 1.8 },
     { text: "Mirror", at: [9.2, -0.4, 7.6], delay: 2.1 },
   ];
@@ -150,10 +152,16 @@ export default function IsoHome() {
             animate={{ opacity: 1, y: 0 }}
             transition={reduce ? { duration: 0 } : { duration: 0.6, delay: l.delay, ease: [0.22, 1, 0.36, 1] }}
           >
-            <rect x={lx - w / 2} y={ly - 15} width={w} height={30} rx={9} fill="#efe5d8" />
-            <text x={lx} y={ly + 5} textAnchor="middle" fontSize={13} fontWeight={500} fill="#1d1d1b" fontFamily="var(--font-inter5), sans-serif">
-              {l.text}
-            </text>
+            {/* On phones the drawing is shown small, so each label is enlarged about its own middle. */}
+            <g
+              className="max-sm:translate-x-[var(--dx)] max-sm:translate-y-[var(--dy)] max-sm:scale-[var(--label-scale)]"
+              style={{ transformBox: "fill-box", transformOrigin: "center", "--dx": `${l.phone?.[0] ?? 0}px`, "--dy": `${l.phone?.[1] ?? 0}px` } as React.CSSProperties}
+            >
+              <rect x={lx - w / 2} y={ly - 15} width={w} height={30} rx={9} fill="#efe5d8" />
+              <text x={lx} y={ly + 5} textAnchor="middle" fontSize={13} fontWeight={500} fill="#1d1d1b" fontFamily="var(--font-inter5), sans-serif">
+                {l.text}
+              </text>
+            </g>
           </motion.g>
         );
       })}
