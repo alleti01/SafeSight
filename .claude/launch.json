@@ -7,6 +7,18 @@
       "runtimeArgs": ["run", "dev"],
       "cwd": "app",
       "port": 3000
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["backend/.venv/bin/uvicorn", "--app-dir", "backend", "server:app", "--reload", "--reload-dir", "backend", "--port", "8000"],
+      "port": 8000
+    },
+    {
+      "name": "backend-demo",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["SAFESIGHT_DEMO=1", "backend/.venv/bin/uvicorn", "--app-dir", "backend", "server:app", "--reload", "--reload-dir", "backend", "--port", "8000"],
+      "port": 8000
     }
   ]
 }

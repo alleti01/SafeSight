@@ -9,6 +9,7 @@ job is done. That lets the app show which step is running, and keeps every
 request short enough to pass through a tunnel.
 """
 
+import io
 import json
 import logging
 import os
@@ -22,6 +23,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from PIL import Image
 from pydantic import BaseModel
 
 import pipeline
@@ -110,6 +112,29 @@ async def analyze(
     _set(job_id, status="queued", step="frames", done=0, total=0, result=None, created=time.time())
     worker.submit(_run, job_id, room, frames_dir, photo_data, video_path)
     return _public(job_id)
+
+
+MAX_LIVE_BYTES = 3 * 1024 * 1024
+
+
+@app.post("/live")
+def live(room: str = Form(...), frame: UploadFile = File(...)):
+    """One frame from the app's live camera: what may be a problem in it, to
+    mark on the video while filming. The frame is only held in memory and is
+    gone when this returns."""
+    room = room.lower()
+    if room not in ROOMS:
+        raise HTTPException(422, f"Pick one of: {', '.join(sorted(ROOMS))}.")
+    data = frame.file.read(MAX_LIVE_BYTES + 1)
+    if len(data) > MAX_LIVE_BYTES:
+        raise HTTPException(422, "That frame is too large.")
+    try:
+        image = Image.open(io.BytesIO(data))
+        image.load()
+    except Exception:
+        raise HTTPException(422, "That frame isn't a picture.")
+    image.thumbnail((640, 640))
+    return {"hazards": pipeline.live_hazards(room, image)}
 
 
 @app.get("/analyze/{job_id}")

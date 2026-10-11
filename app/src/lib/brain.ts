@@ -1,4 +1,4 @@
-import type { AnalyzeResult } from "./contract";
+import type { AnalyzeResult, HazardType, Severity } from "./contract";
 import fakeResults from "./fake-results.json";
 
 // The one setting that points the app at the brain. Leave it unset to use the
@@ -90,6 +90,30 @@ async function fakeAnalyze(room: string, files: File[], onProgress: (p: Progress
     }
   }
   return { ...EXAMPLE_RESULT, job_id: Math.random().toString(36).slice(2, 10), room };
+}
+
+/** Something the live camera found in one frame. `box` is fractions of the frame: left, top, right, bottom. */
+export interface LiveHazard {
+  type: HazardType;
+  severity: Severity;
+  confidence: number;
+  box: [number, number, number, number];
+}
+
+/**
+ * One frame from the live camera: what may be a problem in it right now, to
+ * mark on the video while filming. Nothing comes back without a brain (the
+ * example mode), and a failed frame just counts as nothing found.
+ */
+export async function liveScan(room: string, frame: Blob, signal?: AbortSignal): Promise<LiveHazard[]> {
+  if (USING_FAKE) return [];
+  const form = new FormData();
+  form.append("room", room);
+  form.append("frame", frame, "frame.jpg");
+  const res = await fetch(`${BRAIN_URL}/live`, { method: "POST", body: form, signal });
+  if (!res.ok) return [];
+  const body = await res.json();
+  return Array.isArray(body.hazards) ? body.hazards : [];
 }
 
 async function errorText(res: Response) {

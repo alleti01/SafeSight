@@ -92,3 +92,79 @@ export function boxCenter(box: Hazard["box"], width: number, height: number) {
   const [x0, y0, x1, y1] = box;
   return { x: ((x0 + x1) / 2 / width) * 100, y: ((y0 + y1) / 2 / height) * 100 };
 }
+
+// What each hazard's object is, for "how sure we are that this is ___".
+const OBJECT: Record<HazardType, string> = {
+  dark_rug: "a rug",
+  loose_rug: "a rug",
+  shiny_floor: "a shiny floor",
+  patterned_floor: "a patterned floor",
+  bathroom_fitting_blends_in: "a bathroom fitting",
+  furniture_blends_in: "furniture",
+  mirror: "a mirror",
+  stair_edge_hard_to_see: "a step",
+  floor_clutter: "clutter on the floor",
+  toilet_lookalike: "something that looks like a toilet",
+};
+
+/** "a rug", "a mirror", "furniture": what the detector says the object is. */
+export const objectName = (type: HazardType) => OBJECT[type];
+
+export interface Confidence {
+  level: "High" | "Medium" | "Low";
+  /** The detector's score as a whole percent. */
+  percent: number;
+  /** What the score means, for the info tip. */
+  meaning: string;
+  /** What raised or lowered it. */
+  checks: { ok: boolean; text: string }[];
+}
+
+/**
+ * How sure the detector was about a hazard, and what affected it: whether the
+ * whole object is in the photo, how much of the photo it takes up, and how
+ * clear its shape is.
+ */
+export function confidenceNote(h: Hazard, width: number, height: number): Confidence {
+  const level = h.confidence >= 0.7 ? "High" : h.confidence >= 0.45 ? "Medium" : "Low";
+  const [l, t, r, b] = h.box;
+  const near = 0.01;
+  const edges = [
+    t <= height * near && "top",
+    b >= height * (1 - near) && "bottom",
+    l <= width * near && "left",
+    r >= width * (1 - near) && "right",
+  ].filter(Boolean) as string[];
+  const area = ((r - l) * (b - t)) / (width * height);
+  return {
+    level,
+    percent: Math.round(h.confidence * 100),
+    meaning: `How sure our detector is that this is ${OBJECT[h.type]}. It's only about what the object is, not whether it's a problem.`,
+    checks: [
+      edges.length ? { ok: false, text: `Cut off at the ${edges.join(" and ")} edge` } : { ok: true, text: "Fully in view" },
+      area < 0.02 ? { ok: false, text: "Small in the photo" } : { ok: true, text: "Big enough to see clearly" },
+      h.confidence >= 0.7 ? { ok: true, text: "Clear shape" } : { ok: false, text: "Shape less clear" },
+    ],
+  };
+}
+
+/**
+ * For hazards decided by color, what the measurement found, in a few words
+ * ("almost the same color"). Unlike the detector's score this is measured from
+ * the photo, not a guess. Null for hazards that count because of what they are.
+ */
+export function colorCheck(h: MeasuredHazard): string | null {
+  const m = h.measure;
+  if (!m) return null;
+  switch (h.type) {
+    case "dark_rug":
+      return "much darker than the floor";
+    case "furniture_blends_in":
+    case "bathroom_fitting_blends_in":
+      return m.delta_e < BLENDS_IN_BADLY ? "almost the same color" : "close in color";
+    case "stair_edge_hard_to_see":
+      return "step edges hard to see";
+    default:
+      return null;
+  }
+}

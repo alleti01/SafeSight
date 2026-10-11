@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Frame, Hazard, Severity } from "@/lib/contract";
+import { assetUrl } from "@/lib/brain";
 import { GUIDE_URL, HAZARD_TEXT, SEVERITY_LABEL } from "@/lib/hazards";
-import LabeledPhoto from "./LabeledPhoto";
+import { FindingTags, fixLine, Spotlight } from "@/components/v5/Finding";
 
 export const SEVERITY_TEXT_CLASS: Record<Severity, string> = {
   high: "text-danger",
@@ -48,48 +49,72 @@ export function GuideLink({ className = "" }: { className?: string }) {
   );
 }
 
+// A finding from a scan, ready for the spotlight: the photo and outline
+// resolved against the brain (or the bundled example).
+export const spotPhoto = (frame: Frame) => ({ src: assetUrl(frame.image_url), width: frame.width, height: frame.height });
+export const spotHazard = (hazard: Hazard) => ({ ...hazard, outline_url: hazard.outline_url ? assetUrl(hazard.outline_url) : "" });
+
 export default function HazardCard({
   hazard,
   frame,
   room,
   href,
   number,
+  total,
 }: {
   hazard: Hazard;
   frame: Frame;
   room: string;
   href: string;
   number: number;
+  total: number;
 }) {
-  const name = HAZARD_TEXT[hazard.type]?.name ?? hazard.type;
+  const text = HAZARD_TEXT[hazard.type];
+  const name = text?.name ?? hazard.type;
+  const photo = spotPhoto(frame);
 
   return (
-    <article className="flex h-full min-w-0 flex-col gap-4 rounded-[28px] bg-[var(--ss-card)] p-3 shadow-[0_14px_34px_rgba(62,54,46,0.08)]">
-      <Link href={href} aria-label={`See ${name} in the full photo`} className="block overflow-hidden rounded-[20px]">
-        <LabeledPhoto frame={frame} hazards={[hazard]} />
+    <article className="flex h-full min-w-0 flex-col gap-3 rounded-[20px] bg-white p-5 shadow-[0_14px_34px_rgba(62,54,46,0.08)]">
+      <div className="flex items-center gap-2 text-[13px]">
+        <span className="rounded-full bg-[var(--ss-chip)] px-3 py-1 capitalize">{room}</span>
+        <SeverityPill severity={hazard.severity} />
+        <span className="ml-auto font-v5 text-[13px] text-[var(--ss-ink-3)]">
+          {number} of {total}
+        </span>
+      </div>
+
+      <h2 className="m-0 font-v5 text-[24px] leading-tight font-medium tracking-[-0.01em]">
+        <Link href={href} className="hover:underline hover:underline-offset-4">
+          {name}
+        </Link>
+      </h2>
+      {text && <p className="m-0 text-[14px] leading-relaxed text-[var(--ss-ink-2)]">{text.why}</p>}
+
+      <Link
+        href={href}
+        aria-label={`See ${name} in the full photo`}
+        className="relative block aspect-[4/3] w-full overflow-hidden rounded-[12px] bg-[var(--ss-line)]"
+      >
+        <Spotlight photo={photo} hazard={spotHazard(hazard)} w={4} h={3} />
       </Link>
 
-      <div className="flex flex-1 flex-col gap-3 px-2 pb-2">
-        <div className="flex flex-wrap items-center gap-2 text-[13px]">
-          <span className="grid size-7 place-items-center rounded-full bg-[var(--ss-ink)] text-[12px] text-white tabular-nums">{number}</span>
-          <span className="rounded-full bg-[var(--ss-chip)] px-3 py-1 capitalize">{room}</span>
-          <SeverityPill severity={hazard.severity} />
-        </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <FindingTags up hazard={hazard} photo={photo} />
+        <span className="ml-auto text-[13px] font-medium text-[var(--ss-ink-2)]">{fixLine(hazard.type)}</span>
+      </div>
 
-        <h2 className="m-0 text-[24px] leading-tight font-medium tracking-[-0.01em]">
-          <Link href={href} className="hover:underline hover:underline-offset-4">
-            {name}
-          </Link>
-        </h2>
+      {text && (
+        <p className="m-0 rounded-[12px] bg-[var(--ss-soft)] px-4 py-3 text-[14px] leading-relaxed">
+          <span className="font-medium">Try this: </span>
+          {text.fix}
+        </p>
+      )}
 
-        <HazardExplanation hazard={hazard} />
-
-        <div className="mt-auto flex flex-wrap items-center gap-4 pt-1 text-[14px]">
-          <Link href={href} className="rounded-full bg-[var(--ss-ink)] px-4 py-2 font-medium text-white hover:bg-[var(--ss-ink-hover)]">
-            See full photo
-          </Link>
-          <GuideLink />
-        </div>
+      <div className="mt-auto flex flex-wrap items-center gap-4 pt-1 text-[14px]">
+        <Link href={href} className="rounded-full bg-[var(--ss-ink)] px-4 py-2 font-medium text-white hover:bg-[var(--ss-ink-hover)]">
+          See it in the photo
+        </Link>
+        <GuideLink />
       </div>
     </article>
   );

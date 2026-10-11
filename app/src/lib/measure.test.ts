@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { biggest, boxCenter, measureText, plainContrast, type MeasuredHazard } from "./measure";
+import { biggest, boxCenter, colorCheck, confidenceNote, measureText, plainContrast, type MeasuredHazard } from "./measure";
 import siteImages from "./site-images.json";
 
 const hazard = (over: Partial<MeasuredHazard>): MeasuredHazard => ({
@@ -90,5 +90,44 @@ describe("plainContrast", () => {
   it("has nothing to say for hazards that count because of what they are", () => {
     expect(plainContrast(hazard({ type: "mirror", colors, measure: { lightness: 1, around_lightness: 2, delta_e: 3 } }))).toBeNull();
     expect(plainContrast(hazard({ type: "dark_rug" }))).toBeNull();
+  });
+});
+
+describe("confidenceNote", () => {
+  const h = (confidence: number, box: [number, number, number, number]) =>
+    ({ type: "loose_rug", severity: "low", confidence, frame_id: "f", box, hazard_id: "h" }) as MeasuredHazard;
+
+  it("rates by the detector's score", () => {
+    expect(confidenceNote(h(0.8, [100, 100, 400, 300]), 1000, 600).level).toBe("High");
+    expect(confidenceNote(h(0.5, [100, 100, 400, 300]), 1000, 600).level).toBe("Medium");
+    expect(confidenceNote(h(0.3, [100, 100, 400, 300]), 1000, 600).level).toBe("Low");
+  });
+
+  it("lists what affected it", () => {
+    expect(confidenceNote(h(0.8, [100, 100, 400, 300]), 1000, 600).checks).toEqual([
+      { ok: true, text: "Fully in view" },
+      { ok: true, text: "Big enough to see clearly" },
+      { ok: true, text: "Clear shape" },
+    ]);
+    const cut = confidenceNote(h(0.5, [600, 300, 1000, 600]), 1000, 600);
+    expect(cut.checks[0]).toEqual({ ok: false, text: "Cut off at the bottom and right edge" });
+    expect(cut.percent).toBe(50);
+    expect(confidenceNote(h(0.3, [100, 100, 150, 150]), 1000, 600).checks[1]).toEqual({ ok: false, text: "Small in the photo" });
+  });
+});
+
+describe("colorCheck", () => {
+  const h = (type: string, delta_e: number) =>
+    ({ type, severity: "medium", confidence: 0.7, frame_id: "f", box: [0, 0, 1, 1], hazard_id: "h", measure: { lightness: 40, around_lightness: 42, delta_e } }) as MeasuredHazard;
+
+  it("answers the color question for hazards decided by color", () => {
+    expect(colorCheck(h("furniture_blends_in", 2))).toBe("almost the same color");
+    expect(colorCheck(h("bathroom_fitting_blends_in", 12))).toBe("close in color");
+    expect(colorCheck(h("dark_rug", 30))).toBe("much darker than the floor");
+  });
+
+  it("skips hazards that count because of what they are", () => {
+    expect(colorCheck(h("mirror", 15))).toBeNull();
+    expect(colorCheck(h("loose_rug", 15))).toBeNull();
   });
 });
