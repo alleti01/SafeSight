@@ -8,6 +8,7 @@ import type { SitePhoto } from "@/components/landing/ModelStrip";
 import PhotoCredits from "@/components/PhotoCredits";
 import { Eyebrow, H2, Header } from "@/components/v5/Chrome";
 import { FindingsRow, type Finding } from "@/components/v5/FixList";
+import BeforeAfter from "@/components/v5/BeforeAfter";
 import HowItWorks from "@/components/v5/HowItWorks";
 import RoomCapture from "@/components/v5/RoomCapture";
 import IsoHome from "@/components/v5/IsoHome";
@@ -114,6 +115,13 @@ export default function HomePage() {
       <section id="how" className="scroll-mt-20 bg-[var(--ss-soft)]">
         <HowItWorks room={room} />
       </section>
+
+      {/* Before and after: the example room now and after its cheapest fix. */}
+      {room && (
+        <section id="before-after" className="scroll-mt-20 bg-[var(--ss-sheet)]">
+          <BeforeAfter room={room} />
+        </section>
+      )}
 
       {/* 4. What you get: the heading and the room's findings filling one screen, then the full fix plan. */}
       {room && (

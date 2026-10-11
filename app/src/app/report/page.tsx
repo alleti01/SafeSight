@@ -14,7 +14,7 @@ import {
   planTotals,
   shopLinks,
 } from "@/lib/costs";
-import { GUIDE_URL, HAZARD_TEXT, SEVERITY_LABEL } from "@/lib/hazards";
+import { HAZARD_TEXT, SEVERITY_LABEL } from "@/lib/hazards";
 import { galleryItems, useScans, type GalleryItem } from "@/lib/results";
 
 // The fix plan, laid out like a plan rather than a stack of cards (after home
@@ -56,11 +56,6 @@ export default function ReportPage() {
       : frames.length === 1
         ? "your photo"
         : "your photos";
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 
   if (items.length === 0) {
     return (
@@ -131,19 +126,6 @@ export default function ReportPage() {
 
             {/* 1. What this is, and the totals. */}
             <header className="flex flex-col gap-3 print:gap-1.5">
-              <span className="font-v5 text-[14px] text-[var(--ss-ink-3)] print:text-[10pt]">
-                SafeSight fix plan ·{" "}
-                <span className="capitalize">{rooms.join(", ")}</span> · {today}{" "}
-                ·{" "}
-                <a
-                  href={GUIDE_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2 hover:text-[var(--ss-ink)]"
-                >
-                  Alzheimer&apos;s Society guide
-                </a>
-              </span>
               <h1 className="m-0 font-v5 text-[clamp(36px,4.6vw,56px)] leading-[1.05] font-medium tracking-[-0.03em] print:text-[26pt]">
                 Fix plan for the {rooms.join(", ")}
               </h1>
