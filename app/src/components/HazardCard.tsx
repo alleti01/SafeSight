@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Frame, Hazard, Severity } from "@/lib/contract";
 import { assetUrl } from "@/lib/brain";
-import { GUIDE_URL, HAZARD_TEXT, SEVERITY_LABEL } from "@/lib/hazards";
+import { GUIDE_URL, HAZARD_TEXT, SEVERITY_LABEL, roomName } from "@/lib/hazards";
 import { FindingTags, fixLine, Spotlight } from "@/components/v5/Finding";
 
 export const SEVERITY_TEXT_CLASS: Record<Severity, string> = {
@@ -76,7 +76,7 @@ export default function HazardCard({
   return (
     <article className="flex h-full min-w-0 flex-col gap-3 rounded-[20px] bg-white p-5 shadow-[0_14px_34px_rgba(62,54,46,0.08)]">
       <div className="flex items-center gap-2 text-[13px]">
-        <span className="rounded-full bg-[var(--ss-chip)] px-3 py-1 capitalize">{room}</span>
+        <span className="rounded-full bg-[var(--ss-chip)] px-3 py-1 capitalize">{roomName(room)}</span>
         <SeverityPill severity={hazard.severity} />
         <span className="ml-auto font-v5 text-[13px] text-[var(--ss-ink-3)]">
           {number} of {total}
@@ -95,12 +95,12 @@ export default function HazardCard({
         aria-label={`See ${name} in the full photo`}
         className="relative block aspect-[4/3] w-full overflow-hidden rounded-[12px] bg-[var(--ss-line)]"
       >
-        <Spotlight photo={photo} hazard={spotHazard(hazard)} w={4} h={3} />
+        <Spotlight photo={photo} hazard={spotHazard(hazard)} w={4} h={3} color />
       </Link>
 
       <div className="flex flex-wrap items-center gap-1.5">
         <FindingTags up hazard={hazard} photo={photo} />
-        <span className="ml-auto text-[13px] font-medium text-[var(--ss-ink-2)]">{fixLine(hazard.type)}</span>
+        <span className="ml-auto text-[13px] font-medium text-[var(--ss-ink-2)]">{fixLine(hazard.type, hazard.object)}</span>
       </div>
 
       {text && (

@@ -40,6 +40,7 @@ SEV_RANK = {"high": 3, "medium": 2, "low": 1}
 # ---- thresholds from the guidance (LRV points) ----
 LRV_POOR = 20             # below this between critical surfaces: flag
 LRV_BAD = 10              # below this: hard to tell apart at all
+SAME_SURFACE_LRV = 1.5    # floor vs "wall" closer than this: both samples are the same surface
 FLOOR_STEP_LRV = 10       # adjoining floor areas differing by more than this can read as a step or hole
 DARK_RUG_HIGH_LRV = 30    # rug darker than the floor by at least this: severe
 # ---- image-measurement thresholds (tuned by eye on our footage) ----
@@ -181,6 +182,12 @@ def ring(mask, frac=0.15):
     side = max(9, int(frac * np.sqrt(mask.sum())))
     grown = cv2.dilate(mask.astype(np.uint8), np.ones((side, side), np.uint8)) > 0
     return grown & ~mask
+
+
+def wall_above_floor(wall, floor):
+    """Whether the wall sits mostly above the floor in the picture (its middle row is higher up)."""
+    wy, fy = np.nonzero(wall)[0], np.nonzero(floor)[0]
+    return len(wy) > 0 and len(fy) > 0 and float(np.median(wy)) < float(np.median(fy))
 
 
 def lrv_contrast(lrv, mask, around=None):
@@ -352,11 +359,16 @@ def analyze_frame(an, im, room):
         if d is not None:
             add("floor_transition", "medium" if d > 2 * FLOOR_STEP_LRV else "low", 0.5, box_of(step), step,
                 "floor", {"lrv_difference": round(d, 1)})
-        if wall is not None and wall.sum() > 2000:
-            fw = floor & (cv2.dilate(wall.astype(np.uint8), np.ones((41, 41), np.uint8)) > 0)
-            ww = wall & (cv2.dilate(floor.astype(np.uint8), np.ones((41, 41), np.uint8)) > 0)
+        # A pixel can't be both floor and wall, and a wall rises from the floor, so it sits mostly above it
+        # in the picture. Without these, a camera pointed down at carpet can box the carpet as "wall" too and
+        # compare it with itself (Anish, Oct 11: a near-0 difference on a carpet with no wall in view).
+        wall_only = wall & ~floor if wall is not None else None
+        if wall_only is not None and wall_only.sum() > 2000 and wall_above_floor(wall_only, floor):
+            fw = floor & (cv2.dilate(wall_only.astype(np.uint8), np.ones((41, 41), np.uint8)) > 0)
+            ww = wall_only & (cv2.dilate(floor.astype(np.uint8), np.ones((41, 41), np.uint8)) > 0)
             d, _ = lrv_contrast(lrv, fw, ww)
-            if d is not None and fw.sum() > 500 and ww.sum() > 500 and d < LRV_POOR:
+            # Under SAME_SURFACE_LRV the two samples are the same surface, not a floor meeting a wall.
+            if d is not None and fw.sum() > 500 and ww.sum() > 500 and SAME_SURFACE_LRV <= d < LRV_POOR:
                 edge = fw | ww
                 add("floor_wall_blend", "medium" if d < LRV_BAD else "low", 0.5, box_of(edge), edge,
                     "floor+wall", {"lrv_difference": round(d, 1)})

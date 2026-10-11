@@ -8,7 +8,7 @@ import { Eyebrow } from "@/components/v5/Chrome";
 import PageShell, { BLACK_PILL, Panel } from "@/components/v4/PageShell";
 import { assetUrl } from "@/lib/brain";
 import type { Severity } from "@/lib/contract";
-import { SEVERITY_LABEL } from "@/lib/hazards";
+import { SEVERITY_LABEL, roomName } from "@/lib/hazards";
 import {
   detailHref,
   galleryItems,
@@ -23,12 +23,19 @@ export default function ResultsPage() {
   if (state === null) return null;
 
   const { scans, isExample } = state;
-  const all = galleryItems(scans).filter((i) => !removal.removed.includes(i.key));
+  const all = galleryItems(scans).filter(
+    (i) => !removal.removed.includes(i.key),
+  );
   // Findings the detector is sure of come first; the rest are listed apart, to check in person.
   const items = all.filter((i) => isSure(i.hazard));
   const unsure = all.filter((i) => !isSure(i.hazard));
   const rooms = [...new Set(scans.map((s) => s.room))];
   const photoCount = scans.reduce((n, s) => n + s.frames.length, 0);
+  // Frames from a video carry their time in it; say so instead of "photos".
+  const fromVideo = scans.some((s) => s.frames.some((f) => f.time_s !== undefined));
+  const checkedLine = fromVideo
+    ? `${photoCount} ${photoCount === 1 ? "moment" : "moments"} from your video checked`
+    : `${photoCount} photo${photoCount === 1 ? "" : "s"} checked`;
   const heading =
     items.length === 0
       ? scans.length > 0
@@ -44,7 +51,7 @@ export default function ResultsPage() {
             <Eyebrow>{isExample ? "Example results" : "Your results"}</Eyebrow>
             <h1 className="m-0 text-[clamp(36px,4.6vw,64px)] leading-[1.08] font-v5 font-medium tracking-[-0.03em]">
               <span className="capitalize">
-                {rooms.length > 0 ? rooms.join(", ") : "Results"}
+                {rooms.length > 0 ? rooms.map(roomName).join(", ") : "Results"}
               </span>
               <span className="flex items-center gap-4 text-[var(--ss-ink-2)]">
                 <svg
@@ -68,7 +75,7 @@ export default function ResultsPage() {
           {scans.length > 0 && (
             <BlurFade delay={0.2} className="flex flex-col items-start gap-5">
               <p className="m-0 text-[15px] leading-relaxed text-[var(--ss-ink-2)]">
-                {photoCount} photo{photoCount === 1 ? "" : "s"} checked. Every
+                {checkedLine}. Every
                 home and person is different, so treat these as suggestions, not
                 a safety inspection.
                 {isExample && " Check a room to see your own."}
@@ -102,7 +109,12 @@ export default function ResultsPage() {
           </p>
         </Panel>
       ) : (
-        <Gallery items={items} unsure={unsure} isExample={isExample} removal={removal} />
+        <Gallery
+          items={items}
+          unsure={unsure}
+          isExample={isExample}
+          removal={removal}
+        />
       )}
 
       {scans.map((scan) =>
@@ -110,9 +122,9 @@ export default function ResultsPage() {
           <Panel key={scan.job_id} className="!py-8">
             <details open={items.length === 0}>
               <summary className="cursor-pointer text-[18px] font-medium">
-                Photos we checked in the{" "}
-                <span className="capitalize">{scan.room}</span> (
-                {scan.frames.length})
+                {scan.frames.some((f) => f.time_s !== undefined) ? "Moments we checked" : "Photos we checked"}
+                {" · "}
+                <span className="capitalize">{roomName(scan.room)}</span> ({scan.frames.length})
               </summary>
               <ul className="m-0 mt-6 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4 lg:grid-cols-6">
                 {scan.frames.map((f) => (
@@ -246,7 +258,7 @@ function Gallery({
                   onClick={() => choose({ room: r, priority })}
                   count={items.filter((i) => i.room === r).length}
                 >
-                  <span className="capitalize">{r}</span>
+                  <span className="capitalize">{roomName(r)}</span>
                 </Chip>
               ))}
             </Chips>
@@ -282,7 +294,11 @@ function Gallery({
             aria-live="polite"
           >
             {removal.removed.length > 0 && (
-              <button type="button" onClick={removal.undo} className="text-[var(--ss-ink-2)] underline underline-offset-2 hover:text-[var(--ss-ink)]">
+              <button
+                type="button"
+                onClick={removal.undo}
+                className="text-[var(--ss-ink-2)] underline underline-offset-2 hover:text-[var(--ss-ink)]"
+              >
                 Undo remove
               </button>
             )}
@@ -328,18 +344,32 @@ function Gallery({
         </div>
       )}
 
-      {unsure.filter((i) => (!room || i.room === room) && (!priority || i.hazard.severity === priority)).length > 0 && (
+      {unsure.filter(
+        (i) =>
+          (!room || i.room === room) &&
+          (!priority || i.hazard.severity === priority),
+      ).length > 0 && (
         <details className="group mt-4 border-t border-[var(--ss-line)] pt-6">
           <summary className="flex cursor-pointer list-none items-baseline gap-3 text-[17px] font-medium [&::-webkit-details-marker]:hidden">
-            <span aria-hidden="true" className="text-[var(--ss-ink-3)] transition-transform group-open:rotate-90">›</span>
+            <span
+              aria-hidden="true"
+              className="text-[var(--ss-ink-3)] transition-transform group-open:rotate-90"
+            >
+              ›
+            </span>
             Less sure: check these in person
             <span className="text-[14px] font-normal text-[var(--ss-ink-3)]">
-              {unsure.length} more. The detector wasn&apos;t confident enough to list them above.
+              {unsure.length} more. The detector wasn&apos;t confident enough to
+              list them above.
             </span>
           </summary>
           <div className="mt-6 flex flex-col gap-6">
             {unsure
-              .filter((i) => (!room || i.room === room) && (!priority || i.hazard.severity === priority))
+              .filter(
+                (i) =>
+                  (!room || i.room === room) &&
+                  (!priority || i.hazard.severity === priority),
+              )
               .map((item) => (
                 <HazardRow
                   key={item.key}
@@ -347,7 +377,11 @@ function Gallery({
                   frame={item.frame}
                   room={item.room}
                   number={items.length + unsure.indexOf(item) + 1}
-                  href={detailHref(item.jobId, item.hazard.hazard_id, isExample)}
+                  href={detailHref(
+                    item.jobId,
+                    item.hazard.hazard_id,
+                    isExample,
+                  )}
                   onDismiss={() => removal.remove(item.key)}
                 />
               ))}

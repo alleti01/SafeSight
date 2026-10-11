@@ -70,7 +70,7 @@ export const HAZARD_TEXT: Record<HazardType, HazardText> = {
   },
   door_blends_in: {
     name: "Door that blends into the wall",
-    why: "When a door is the same color as the wall around it, it's harder to find, especially the bathroom door at night.",
+    why: "When a door is the same color as the wall around it, it's harder to find, especially at night.",
     fix: "Paint the door or its frame a contrasting color, or add a clear picture sign at eye level.",
   },
   window_reflection: {
@@ -111,3 +111,6 @@ export const SEVERITY_LABEL: Record<Severity, string> = {
   medium: "Worth fixing",
   low: "Keep an eye on",
 };
+
+/** A room as people say it: "living_room" -> "living room". */
+export const roomName = (room: string) => room.replace(/_/g, " ");

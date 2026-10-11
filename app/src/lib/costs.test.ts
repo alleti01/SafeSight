@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HazardType } from "./contract";
-import { duration, FIX_PLANS, HANDYMAN_RATE, labor, materials, money, planTotals, shopLinks } from "./costs";
+import { duration, FIX_PLANS, HANDYMAN_RATE, labor, materials, money, planFor, planTotals, shopLinks } from "./costs";
 
 const ALL: HazardType[] = [
   "dark_rug", "loose_rug", "shiny_floor", "patterned_floor", "bathroom_fitting_blends_in",
@@ -67,5 +67,28 @@ describe("formatting", () => {
     const [walmart, amazon] = shopLinks("rug grippers");
     expect(walmart.url).toBe("https://www.walmart.com/search?q=rug%20grippers&sort=price_low");
     expect(amazon.url).toBe("https://www.amazon.com/s?k=rug%20grippers&s=price-asc-rank");
+  });
+});
+
+describe("planFor", () => {
+  it("gives a cable a cord plan, with nothing about shoes", () => {
+    const p = planFor({ type: "floor_clutter", object: "cable" });
+    expect(p.fix).toMatch(/cord cover/i);
+    expect(JSON.stringify(p)).not.toMatch(/shoe/i);
+  });
+  it("gives other floor clutter a put-it-away plan, with nothing about shoes", () => {
+    const p = planFor({ type: "floor_clutter", object: "floor_clutter" });
+    expect(p.fix).toMatch(/basket or bin/i);
+    expect(JSON.stringify(p)).not.toMatch(/shoe/i);
+  });
+  it("keeps the example room's plan when nothing says what was seen", () => {
+    expect(planFor({ type: "floor_clutter" })).toBe(FIX_PLANS.floor_clutter);
+  });
+  it("leaves other hazards alone", () => {
+    expect(planFor({ type: "dark_rug", object: "rug" })).toBe(FIX_PLANS.dark_rug);
+  });
+  it("totals use what was seen", () => {
+    const [cable] = planTotals([{ type: "floor_clutter", object: "cable" }]).diy;
+    expect(cable).toBe(20);
   });
 });

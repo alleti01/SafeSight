@@ -1,5 +1,6 @@
 "use client";
 
+import { roomName } from "@/lib/hazards";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Eyebrow } from "@/components/v5/Chrome";
@@ -15,7 +16,6 @@ const LABEL: Record<Step, string> = {
   contrast: "Checking contrast",
 };
 
-const roomName = (room: string) => room.replace(/_/g, " ");
 
 function clock(seconds: number) {
   const s = Math.max(0, Math.round(seconds));
@@ -54,12 +54,16 @@ export default function AnalysisProgress({
   const current = progress ? STEPS.indexOf(progress.step) : 0;
   const isVideo = files.some((f) => f.type.startsWith("video/"));
 
+  // The estimate counts from when the check actually starts: while another
+  // check is running ours waits in line, and a countdown would run out early.
+  const queued = progress?.queued ?? false;
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
+    if (queued) return;
     const start = Date.now();
     const id = setInterval(() => setElapsed((Date.now() - start) / 1000), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [queued]);
 
   // Until the first checked frame comes back, show the caregiver's own upload (it never leaves their browser here).
   const [local, setLocal] = useState<{ url: string; video: boolean } | null>(null);
@@ -93,8 +97,8 @@ export default function AnalysisProgress({
             </p>
 
             <dl className="m-0 mt-4 grid w-full max-w-[460px] grid-cols-3 border-t border-[var(--ss-line)] pt-5">
-              <Stat label={left === null ? "Working" : left > 3 ? "Time left" : "Almost done"}>
-                {left === null ? "…" : left > 3 ? `~${clock(left)}` : "Soon"}
+              <Stat label={queued ? "Waiting for another check" : left === null ? "Working" : left > 3 ? "Time left" : "Almost done"}>
+                {queued ? "In line" : left === null ? "…" : left > 3 ? `~${clock(left)}` : "Soon"}
               </Stat>
               <Stat label="Found so far" divider>
                 {found === undefined ? "–" : found}

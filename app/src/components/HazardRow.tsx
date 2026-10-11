@@ -6,14 +6,13 @@ import HazardClip from "@/components/HazardClip";
 import { spotHazard, spotPhoto } from "@/components/HazardCard";
 import { Spotlight, useSize } from "@/components/v5/Finding";
 import { assetUrl } from "@/lib/brain";
-import { FIX_PLANS, materials, money } from "@/lib/costs";
+import { materials, money, planFor } from "@/lib/costs";
 import type { Frame, Hazard } from "@/lib/contract";
 import { guideFor, LRV_BAD, LRV_POOR } from "@/lib/guide";
-import { hazardText, SEVERITY_LABEL } from "@/lib/hazards";
+import { hazardText, SEVERITY_LABEL, roomName } from "@/lib/hazards";
 import { plainContrast, type MeasuredHazard } from "@/lib/measure";
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-const roomName = (room: string) => room.replace(/_/g, " ");
 const OBJECT_NAME: Record<string, string> = {
   toilet_roll_holder: "Toilet roll holder",
   floor_clutter: "Clutter",
@@ -40,13 +39,30 @@ function contrastNote(h: Hazard): string | null {
   return h.type === "floor_transition" ? `Floor change · ${pts(d)}` : `Low contrast · ${pts(d)}`;
 }
 
+// Whether the object-vs-around numbers (`lrv`, measured against everything
+// around the object) tell the same story as the number the finding was decided
+// on (`evidence.lrv_difference`, e.g. a door against the wall only). When they
+// don't (a dark doorway next to a light door), showing them would contradict
+// the finding, so only the deciding number is shown.
+function lrvAgrees(h: Hazard): boolean {
+  const e = h.evidence ?? {};
+  if (!h.lrv || typeof e.lrv_difference !== "number") return Boolean(h.lrv);
+  return Math.abs(Math.abs(h.lrv.object - h.lrv.around) - e.lrv_difference) <= 3;
+}
+
 // What the light reflectance numbers mean, in a sentence.
 function lrvSentence(h: Hazard): string | null {
-  const l = h.lrv;
-  if (!l) return null;
-  const d = Math.abs(l.object - l.around);
   if (!["bathroom_fitting_blends_in", "furniture_blends_in", "door_blends_in"].includes(h.type)) return null;
-  return `Light reflectance ${Math.round(l.object)} against ${Math.round(l.around)}: a difference of ${Math.round(d)}. Design guides flag under ${LRV_POOR}${d < LRV_BAD ? `, and under ${LRV_BAD} is very hard to see` : ""}.`;
+  const e = h.evidence ?? {};
+  const l = h.lrv;
+  const flag = (d: number) => `Design guides flag under ${LRV_POOR}${d < LRV_BAD ? `, and under ${LRV_BAD} is very hard to see` : ""}.`;
+  if (l && lrvAgrees(h)) {
+    const d = Math.abs(l.object - l.around);
+    return `Light reflectance ${Math.round(l.object)} against ${Math.round(l.around)}: a difference of ${Math.round(d)}. ${flag(d)}`;
+  }
+  if (typeof e.lrv_difference !== "number") return null;
+  const against = h.type === "door_blends_in" ? "the wall right around it" : "what's right around it";
+  return `Light reflectance differs from ${against} by only about ${points(e.lrv_difference)}. ${flag(e.lrv_difference)}`;
 }
 
 /** What was measured, in words, for findings that count because of what they are. */
@@ -97,7 +113,7 @@ export default function HazardRow({
   const contrast = plainContrast(hazard);
   const lrv = lrvSentence(hazard);
   const evidence = evidenceSentence(hazard);
-  const plan = (FIX_PLANS as Partial<typeof FIX_PLANS>)[hazard.type];
+  const plan = planFor(hazard) as ReturnType<typeof planFor> | undefined;
   const label = [objectLabel(hazard.object) || text.name, `${Math.round(hazard.confidence * 100)}%`].join(" · ");
 
   const guideRepeatsWhy = similar(guide.says, text.why);
@@ -114,7 +130,7 @@ export default function HazardRow({
           {view === "clip" && hasClip ? (
             <HazardClip src={assetUrl(hazard.clip_url!)} poster={photo.src} track={hazard.track!} label={label} />
           ) : size.w > 0 ? (
-            <Spotlight photo={photo} hazard={spotHazard(hazard)} w={size.w} h={size.h} />
+            <Spotlight photo={photo} hazard={spotHazard(hazard)} w={size.w} h={size.h} color />
           ) : null}
         </div>
         {hasClip && (
@@ -169,7 +185,7 @@ export default function HazardRow({
           </Row>
           {(contrast || lrv || evidence) && (
             <Row term="Measured">
-              {contrast && (
+              {contrast && lrvAgrees(hazard) && (
                 <span className="mb-1.5 flex items-center gap-2">
                   <Swatch color={contrast.objectColor} /> {contrast.object}
                   <span className="text-[var(--ss-ink-3)]">vs</span>
@@ -182,14 +198,14 @@ export default function HazardRow({
           <Row term="Guide">
             {!guideRepeatsWhy && <span className="block">{guide.says}</span>}
             <a href={guide.source.url} target="_blank" rel="noreferrer" className="text-[var(--ss-ink-3)] underline underline-offset-4 hover:text-[var(--ss-ink)]">
-              {guide.source.name} ↗
+              {guide.source.name}{"\u00a0"}↗
             </a>
           </Row>
           <Row term="Fix">
             {free && <span className="block">{free} Free.</span>}
             <span className="block">
               {plan ? `${plan.fix}.` : text.fix}
-              {cost && cost[1] > 0 && <span className="text-[var(--ss-ink-3)]"> From {money(cost)}.</span>}
+              {cost && cost[1] > 0 && <span className="whitespace-nowrap text-[var(--ss-ink-3)]"> From {money(cost)}.</span>}
             </span>
           </Row>
         </dl>
