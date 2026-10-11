@@ -71,6 +71,13 @@ Without `NEXT_PUBLIC_BRAIN_URL` the website shows the bundled example results. T
 
 Measured on an Apple-silicon Mac: 5 photos in about 12 s, a 25-second video in about 75 s, a 2-minute house tour in about 90 s.
 
+### Railway
+
+Two services from this repo, both with the repo root as their root directory:
+
+- **Website**: uses `railway.json` at the root (builds `app/Dockerfile`). Set `NEXT_PUBLIC_BRAIN_URL` to the analysis service's public URL; without it the site shows the example results.
+- **Analysis service**: set its config file to `model/railway.json` (builds `model/Dockerfile`). Set `GITHUB_TOKEN` to a token that can read this repo, so it can download the weights from the release on first start, and attach a volume so they're kept between deploys. Railway has no GPU, so analysis runs on the CPU and is much slower than on a Mac or the H100.
+
 ## Credits
 
 ### Guide and research
