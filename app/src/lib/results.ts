@@ -52,6 +52,18 @@ export function galleryItems(scans: AnalyzeResult[]): GalleryItem[] {
     );
 }
 
+// Same cutoffs as the analysis service (model/service.py SURE_AT), for results saved before it sent `sure`.
+const SURE_AT: Record<string, number> = {
+  rug: 0.3, toilet: 0.3, toilet_roll_holder: 0.4, towel: 0.5, mirror: 0.5, stairs: 0.3, cable: 0.5,
+  floor_clutter: 0.7, bin: 0.85, bed: 0.3, sofa: 0.4, chair: 0.3, table: 0.3, door: 0.4, window: 0.3, glass_door: 0.6,
+};
+
+/** Whether the detector was sure enough of this finding to list it with the rest. */
+export function isSure(h: AnalyzeResult["hazards"][number]): boolean {
+  if (h.sure !== undefined) return h.sure;
+  return h.object ? h.confidence >= (SURE_AT[h.object] ?? 0) : true;
+}
+
 export function detailHref(jobId: string, hazardId: string, example = false) {
   return `/results/${encodeURIComponent(jobId)}/${encodeURIComponent(hazardId)}${example ? "?example" : ""}`;
 }

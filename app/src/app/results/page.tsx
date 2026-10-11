@@ -12,16 +12,21 @@ import { SEVERITY_LABEL } from "@/lib/hazards";
 import {
   detailHref,
   galleryItems,
+  isSure,
   useScans,
   type GalleryItem,
 } from "@/lib/results";
 
 export default function ResultsPage() {
   const state = useScans();
+  const removal = useRemoved();
   if (state === null) return null;
 
   const { scans, isExample } = state;
-  const items = galleryItems(scans);
+  const all = galleryItems(scans).filter((i) => !removal.removed.includes(i.key));
+  // Findings the detector is sure of come first; the rest are listed apart, to check in person.
+  const items = all.filter((i) => isSure(i.hazard));
+  const unsure = all.filter((i) => !isSure(i.hazard));
   const rooms = [...new Set(scans.map((s) => s.room))];
   const photoCount = scans.reduce((n, s) => n + s.frames.length, 0);
   const heading =
@@ -81,7 +86,7 @@ export default function ResultsPage() {
         </header>
       </Panel>
 
-      {items.length === 0 ? (
+      {items.length === 0 && unsure.length === 0 ? (
         <Panel>
           <p className="m-0 text-[20px]">
             {scans.length > 0 ? (
@@ -97,7 +102,7 @@ export default function ResultsPage() {
           </p>
         </Panel>
       ) : (
-        <Gallery items={items} isExample={isExample} />
+        <Gallery items={items} unsure={unsure} isExample={isExample} removal={removal} />
       )}
 
       {scans.map((scan) =>
@@ -155,12 +160,39 @@ interface Filters {
 // matches the finding's own page and the fix plan; the cards keep their width
 // however many are shown. The filters are remembered for the session, so
 // coming back from a finding keeps them.
+const REMOVED = "safesight:removed";
+
+// Findings the caregiver marked "not right", for this session, with undo.
+function useRemoved() {
+  const [removed, setRemoved] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      setRemoved(JSON.parse(sessionStorage.getItem(REMOVED) ?? "[]"));
+    } catch {}
+  }, []);
+  const save = (next: string[]) => {
+    setRemoved(next);
+    try {
+      sessionStorage.setItem(REMOVED, JSON.stringify(next));
+    } catch {}
+  };
+  return {
+    removed,
+    remove: (key: string) => save([...removed, key]),
+    undo: () => save(removed.slice(0, -1)),
+  };
+}
+
 function Gallery({
   items,
+  unsure,
   isExample,
+  removal,
 }: {
   items: GalleryItem[];
+  unsure: GalleryItem[];
   isExample: boolean;
+  removal: ReturnType<typeof useRemoved>;
 }) {
   const [filters, setFilters] = useState<Filters>({
     room: null,
@@ -249,6 +281,11 @@ function Gallery({
             className="ml-auto flex items-center gap-3 text-[14px] text-[var(--ss-ink-3)]"
             aria-live="polite"
           >
+            {removal.removed.length > 0 && (
+              <button type="button" onClick={removal.undo} className="text-[var(--ss-ink-2)] underline underline-offset-2 hover:text-[var(--ss-ink)]">
+                Undo remove
+              </button>
+            )}
             Showing {shown.length} of {items.length}
             {(room || priority) && (
               <button
@@ -284,10 +321,38 @@ function Gallery({
                 room={item.room}
                 number={items.indexOf(item) + 1}
                 href={detailHref(item.jobId, item.hazard.hazard_id, isExample)}
+                onDismiss={() => removal.remove(item.key)}
               />
             </BlurFade>
           ))}
         </div>
+      )}
+
+      {unsure.filter((i) => (!room || i.room === room) && (!priority || i.hazard.severity === priority)).length > 0 && (
+        <details className="group mt-4 border-t border-[var(--ss-line)] pt-6">
+          <summary className="flex cursor-pointer list-none items-baseline gap-3 text-[17px] font-medium [&::-webkit-details-marker]:hidden">
+            <span aria-hidden="true" className="text-[var(--ss-ink-3)] transition-transform group-open:rotate-90">›</span>
+            Less sure: check these in person
+            <span className="text-[14px] font-normal text-[var(--ss-ink-3)]">
+              {unsure.length} more. The detector wasn&apos;t confident enough to list them above.
+            </span>
+          </summary>
+          <div className="mt-6 flex flex-col gap-6">
+            {unsure
+              .filter((i) => (!room || i.room === room) && (!priority || i.hazard.severity === priority))
+              .map((item) => (
+                <HazardRow
+                  key={item.key}
+                  hazard={item.hazard}
+                  frame={item.frame}
+                  room={item.room}
+                  number={items.length + unsure.indexOf(item) + 1}
+                  href={detailHref(item.jobId, item.hazard.hazard_id, isExample)}
+                  onDismiss={() => removal.remove(item.key)}
+                />
+              ))}
+          </div>
+        </details>
       )}
     </section>
   );

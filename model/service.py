@@ -57,6 +57,13 @@ MAX_SIDE = 1280
 MAX_VIDEO_BYTES = 500 * 1024 * 1024
 MAX_LIVE_BYTES = 3 * 1024 * 1024
 VIDEO_FPS = 1.0  # one sharp, distinct frame per second (extract_frames drops blurry and repeated ones)
+# How sure the detector must be for a finding to be listed as "sure" (the website puts the rest under
+# "less sure, check in person"). Measured on our two hand-labeled test homes (Oct 11): the lowest confidence where
+# at least about 60% of that object type's detections were right. Bins and glass doors had no reliable detections
+# there, so they need a very high score; cables never reach 60%, and a missed cable is worse, so 0.5.
+SURE_AT = {"rug": 0.3, "toilet": 0.3, "toilet_roll_holder": 0.4, "towel": 0.5, "mirror": 0.5, "stairs": 0.3,
+           "cable": 0.5, "floor_clutter": 0.7, "bin": 0.85, "bed": 0.3, "sofa": 0.4, "chair": 0.3, "table": 0.3,
+           "door": 0.4, "window": 0.3, "glass_door": 0.6}
 MAX_FRAMES = 40  # long videos: this many frames, evenly spread (neighbouring frames of a slow tour mostly repeat)
 
 log = logging.getLogger("safesight")
@@ -236,7 +243,9 @@ def analyze_job(job_id, room, tmp: Path, photo_data, video_path, progress):
                 "frame_id": f"f{k + 1:02d}", "box": [int(round(v)) for v in h["box"]],
                 "outline_url": f"{prefix}/outlines/{hid}.png",
                 # additions (shared/README.md is add-only): what the object is, the measured evidence, and when
-                "object": h["object"], "evidence": h["evidence"], **measure(ims[k], h["mask"])}
+                "object": h["object"], "evidence": h["evidence"], **measure(ims[k], h["mask"]),
+                # surfaces (floor, wall) are measured, not detected: they count as sure
+                "sure": h["confidence"] >= SURE_AT.get(h["object"], 0.0)}
         if times:
             item["time_s"] = times[k]
         out_h.append(item)
