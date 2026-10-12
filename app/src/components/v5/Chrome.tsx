@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import PhotoCredits from "@/components/PhotoCredits";
+import { GUIDE_URL } from "@/lib/hazards";
 
 // The pieces every page shares: the logo mark, the small label that opens
 // a section, the section heading, and the header bar.
@@ -166,5 +168,118 @@ export function Header({
         </div>
       )}
     </header>
+  );
+}
+
+// The links in the footer, besides the sections in NAV.
+const FOOTER_SEE = [
+  { href: "/results?example", label: "Example results" },
+  { href: "/report?example", label: "Example fix plan" },
+];
+
+/**
+ * The site footer: what SafeSight is and a way to start, the site's links
+ * in columns, and a bottom line with the credits (photo credits open in place).
+ */
+export function SiteFooter() {
+  const [credits, setCredits] = useState(false);
+  const column = "m-0 flex list-none flex-col gap-2.5 p-0";
+  const heading = "m-0 mb-3 text-[13px] font-medium text-[var(--ss-ink-3)]";
+  const link = "text-[15px] text-[var(--ss-ink-2)] hover:text-[var(--ss-ink)]";
+  return (
+    <footer className="border-t border-[var(--ss-line)] bg-[var(--ss-sheet)] print:hidden">
+      <div className="grid w-full grid-cols-2 gap-x-6 gap-y-10 px-5 pt-14 pb-10 sm:px-10 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
+        <div className="col-span-2 flex flex-col items-start gap-4 lg:col-span-1">
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 font-v5 text-[22px] font-medium tracking-[-0.02em]"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt=""
+              width={28}
+              height={28}
+              className="size-7"
+            />
+            SafeSight
+          </Link>
+          <p className="m-0 max-w-[340px] text-[15px] leading-relaxed text-[var(--ss-ink-2)]">
+            Film a room and see what may confuse or trip someone living with
+            dementia, and the cheapest way to fix it.
+          </p>
+          {/* A plain anchor, like the section links: the browser jumps to the section reliably. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
+            href="/#check"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ss-ink)] px-5 py-2.5 text-[14px] font-medium text-white hover:bg-[var(--ss-ink-hover)]"
+          >
+            Check a room <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <nav aria-label="Footer" className="contents">
+          <div>
+            <p className={heading}>Explore</p>
+            <ul className={column}>
+              {NAV.map((n) => (
+                <li key={n.href}>
+                  <a href={n.href} className={link}>
+                    {n.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className={heading}>See an example</p>
+            <ul className={column}>
+              {FOOTER_SEE.map((n) => (
+                <li key={n.href}>
+                  <Link href={n.href} className={link}>
+                    {n.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="col-span-2 lg:col-span-1">
+            <p className={heading}>Sources</p>
+            <ul className={column}>
+              <li>
+                <a
+                  href={GUIDE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={link}
+                >
+                  Alzheimer&apos;s Society guide{"\u00a0"}↗
+                </a>
+              </li>
+              <li className="text-[15px] text-[var(--ss-ink-3)]">
+                Suggestions, not a safety inspection
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+
+      <div className="flex w-full flex-col gap-3 border-t border-[var(--ss-line)] px-5 py-5 text-[13px] text-[var(--ss-ink-3)] sm:px-10">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+          <span>
+            © 2026 SafeSight · Built at BananaHacks 2026 by Anish and Abhi
+          </span>
+          <button
+            type="button"
+            aria-expanded={credits}
+            onClick={() => setCredits((v) => !v)}
+            className="underline-offset-2 hover:text-[var(--ss-ink)] hover:underline"
+          >
+            Photo credits
+          </button>
+        </div>
+        {credits && <PhotoCredits className="max-w-[760px] leading-relaxed" />}
+      </div>
+    </footer>
   );
 }

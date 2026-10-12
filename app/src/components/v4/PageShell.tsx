@@ -1,27 +1,14 @@
-import PhotoCredits from "@/components/PhotoCredits";
-import { Header } from "@/components/v5/Chrome";
-import { GUIDE_URL } from "@/lib/hazards";
+import { Header, SiteFooter } from "@/components/v5/Chrome";
 
 // Every page outside the home page: the header, the page's sections on the
 // cream page, and the footer, in the same style as the home page. On paper
 // only the content prints.
-export default function PageShell({ children, credits = false }: { children: React.ReactNode; credits?: boolean }) {
+export default function PageShell({ children }: { children: React.ReactNode; credits?: boolean }) {
   return (
     <div className="flex min-h-svh flex-col print:block print:min-h-0">
       <Header />
       <main className="flex flex-1 flex-col print:block">{children}</main>
-      <footer className="border-t border-[var(--ss-line)] print:hidden">
-        <div className="flex w-full flex-wrap justify-between gap-6 px-5 py-10 text-[13px] text-[var(--ss-ink-2)] sm:px-10">
-          <span className="max-w-[460px]">
-            Built at BananaHacks 2026. Based on the{" "}
-            <a href={GUIDE_URL} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-              Alzheimer&apos;s Society guide
-            </a>
-            .
-          </span>
-          {credits && <PhotoCredits className="max-w-[600px]" />}
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

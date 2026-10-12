@@ -5,14 +5,12 @@ import Link from "next/link";
 import AnalysisProgress from "@/components/AnalysisProgress";
 import VideoHero from "@/components/hero/VideoHero";
 import type { SitePhoto } from "@/components/landing/ModelStrip";
-import PhotoCredits from "@/components/PhotoCredits";
-import { Eyebrow, H2, Header } from "@/components/v5/Chrome";
+import { Eyebrow, H2, Header, SiteFooter } from "@/components/v5/Chrome";
 import { FindingsRow, type Finding } from "@/components/v5/FixList";
 import HowItWorks from "@/components/v5/HowItWorks";
 import RoomCapture from "@/components/v5/RoomCapture";
 import IsoHome from "@/components/v5/IsoHome";
 import type { HazardType } from "@/lib/contract";
-import { GUIDE_URL } from "@/lib/hazards";
 import { biggest, type MeasuredHazard } from "@/lib/measure";
 import siteImages from "@/lib/site-images.json";
 import { useRoomCheck } from "@/lib/useRoomCheck";
@@ -208,24 +206,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer. */}
-      <footer className="bg-[var(--ss-sheet)]">
-        <div className="flex w-full flex-wrap justify-between gap-6 px-5 py-10 text-[13px] text-[var(--ss-ink-2)] sm:px-10">
-          <span className="max-w-[460px]">
-            Built at BananaHacks 2026 by Anish and Abhi. Based on the{" "}
-            <a
-              href={GUIDE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2"
-            >
-              Alzheimer&apos;s Society guide
-            </a>
-            .
-          </span>
-          <PhotoCredits className="max-w-[600px]" />
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
