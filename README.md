@@ -96,6 +96,8 @@ Two services from this repo, both with the repo root as their root directory (se
 
 ### Datasets
 
+Training data by source, and per-object results: `model/results/stats_1_before_after.png`, `stats_2_training_runs.png`, `stats_3_training_data.png`.
+
 - [Open Images V7](https://storage.googleapis.com/openimages/web/index.html) (Google; annotations CC BY 4.0, images CC BY 2.0).
 - [ADE20K](https://groups.csail.mit.edu/vision/datasets/ADE20K/) (MIT CSAIL; scene parsing benchmark and the full dataset via [Hugging Face](https://huggingface.co/datasets/1aurent/ADE20K)), research use.
 - [LVIS v1](https://www.lvisdataset.org) (CC BY 4.0) on [COCO](https://cocodataset.org) images.
@@ -106,6 +108,7 @@ Two services from this repo, both with the repo root as their root directory (se
 - [Charades](https://prior.allenai.org/projects/charades) (Sigurdsson et al., Allen Institute for AI, 2016), non-commercial research license.
 - robot6000, floor-level photos from robot vacuums ([MORAN-ASLDK/Pubilc-datasets](https://github.com/MORAN-ASLDK/Pubilc-datasets)).
 - 18 [Roboflow Universe](https://universe.roboflow.com) datasets, all CC BY 4.0: stairs (bcpmodel1commona/stairs-spqnr, tom-lai-8bp7n/stairs-i2yia, kaist-9sscg/stairs-segmentation), cables (bartu-erguven-qpopt/cable-dataset, superfish-5k9sp/robot-vacuum-cleaner), clutter (hoarding-support/clutter-classes, sasya-0ullp/messy-room-y5qsc, sds-first-workspace/messy-imgs), bathrooms (sapiens/toilet-seat-object-detection, svalab12/bathroom-lyfer, adrian-gorcea/bathroom-sdsne, practicas-preprofesionales/toilet-paper-rv8hr), rugs (asdasd-fl13n/carpet-segmentation, ai-dataset-8dqwo/carpet-rjju3, ethan-tigrik-zgtmb/carpet-calpo) and glass doors (annotation-4rrq6/shower-and-screen-91lzq, indoor-detection/glass-door-stair-fish_tank-tllvf, xinen-2awjn/hazardcap-glass-door). Versions in `model/data/roboflow/sources.json` (not in git) and `model/PLAN.md`.
+- 12 more [Roboflow Universe](https://universe.roboflow.com) datasets, all CC BY 4.0 (latest version of each, via `model/scripts/convert_ext.py`): floor clutter and cables (jiwoo-qcx21/lgdata, hoarding-support/clutter-dataset-labeled, custom-object-detection-gjcsk/assistive-object-detection-2-d00fb, sock-and-underwear-detection/roomba-claw-mod-polygon, project-icngw/sock-detection, nafiz-fahad-1otyg/indoor-objects-1epjv, habibas-workspace-clali/project-iyibv), doors (rick-l7ot7/door-bhrek, biswajeet-panda/door-open-closed-relabel, annotation-4rrq6/door-xwnuj), glass doors (brian-5ds8w/glassdoor-3lply) and toilet roll holders (momo-nutwk/toilet-paper-wehrw).
 - Our own and friends' home videos, shared with permission. They are used for training and testing only, people are blurred, and none of them are in this repo.
 
 ### Libraries and tools
