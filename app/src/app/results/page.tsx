@@ -76,16 +76,6 @@ export default function ResultsPage() {
           </div>
           {scans.length > 0 && (
             <BlurFade delay={0.2} className="flex flex-col items-start gap-5">
-              {state.offline && (
-                <p
-                  role="status"
-                  className="m-0 rounded-[12px] bg-[#f6e6cf] px-4 py-3 text-[15px] leading-relaxed text-[#6b4510]"
-                >
-                  We couldn&apos;t check your upload: this copy of the site
-                  isn&apos;t connected to the analysis service yet. Here are
-                  example results so you can see what a check looks like.
-                </p>
-              )}
               <p className="m-0 text-[15px] leading-relaxed text-[var(--ss-ink-2)]">
                 {checkedLine}. Every home and person is different, so treat
                 these as suggestions, not a safety inspection.

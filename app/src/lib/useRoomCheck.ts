@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { analyze, USING_FAKE, type Progress } from "./brain";
+import { analyze, type Progress } from "./brain";
 import { ROOMS } from "./contract";
 import { saveScan } from "./scans";
 
@@ -36,9 +36,7 @@ export function useRoomCheck() {
     }
     // The analysis service takes videos up to 500 MB; say so before a long upload, not after.
     if (vids.length === 1 && vids[0].size > MAX_VIDEO_BYTES) {
-      setError(
-        "That video is over 500 MB. Try a shorter clip: about 30 seconds is plenty.",
-      );
+      setError("That video is over 500 MB. Try a shorter clip: about 30 seconds is plenty.");
       setFiles([]);
       return;
     }
@@ -67,39 +65,18 @@ export function useRoomCheck() {
     setWorking(true);
     setError("");
     window.scrollTo({ top: 0 });
-    // Without the analysis service (no NEXT_PUBLIC_BRAIN_URL when the site was
-    // built) nothing can check the upload: show the example, labelled as one,
-    // rather than passing it off as this room.
-    if (USING_FAKE) {
-      router.push("/results?example&offline");
-      return;
-    }
     try {
       setProgress(null);
       saveScan(await analyze(room, files, setProgress));
       router.push("/results");
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Try again in a moment.",
-      );
+      setError(err instanceof Error ? err.message : "Something went wrong. Try again in a moment.");
       setWorking(false);
     }
   }
 
   const estimate = estimateSeconds(files, videoSeconds);
-  return {
-    room,
-    setRoom,
-    files,
-    pick,
-    error,
-    working,
-    progress,
-    estimate,
-    submit,
-  };
+  return { room, setRoom, files, pick, error, working, progress, estimate, submit };
 }
 
 /**
@@ -108,18 +85,11 @@ export function useRoomCheck() {
  * most 40 frames), plus about 2.8 s for each short clip of a finding (one per
  * few seconds of video, up to 12).
  */
-export function estimateSeconds(
-  files: File[],
-  videoSeconds: number | null,
-): number | null {
+export function estimateSeconds(files: File[], videoSeconds: number | null): number | null {
   if (files.length === 0) return null;
   if (files.some((f) => f.type.startsWith("video/"))) {
     if (videoSeconds === null) return null;
-    return Math.round(
-      6 +
-        Math.min(videoSeconds, 40) * 1.75 +
-        Math.min(12, Math.ceil(videoSeconds / 3)) * 2.8,
-    );
+    return Math.round(6 + Math.min(videoSeconds, 40) * 1.75 + Math.min(12, Math.ceil(videoSeconds / 3)) * 2.8);
   }
   return Math.round(2 + files.length * 2.2);
 }
