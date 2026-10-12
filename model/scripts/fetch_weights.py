@@ -27,7 +27,13 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def release_assets(token):
     req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/tags/{TAG}",
                                  headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
-    return {a["name"]: a["url"] for a in json.load(urllib.request.urlopen(req))["assets"]}
+    try:
+        return {a["name"]: a["url"] for a in json.load(urllib.request.urlopen(req))["assets"]}
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403, 404):
+            sys.exit(f"GITHUB_TOKEN can't read {REPO} (GitHub said {e.code}). It needs read access to that repo's "
+                     "contents: a fine-grained token owned by the repo's owner, or a classic token with the repo scope.")
+        raise
 
 
 def download(asset_url, token, dest):
