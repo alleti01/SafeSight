@@ -16,11 +16,13 @@ export interface GalleryItem {
 /** This session's scans; or the bundled example when the address ends in
  * ?example, or when using fake results and nothing is saved. */
 export function useScans() {
-  const [state, setState] = useState<{ scans: AnalyzeResult[]; isExample: boolean } | null>(null);
+  const [state, setState] = useState<{ scans: AnalyzeResult[]; isExample: boolean; offline?: boolean } | null>(null);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("example")) {
-      setState({ scans: [EXAMPLE_RESULT], isExample: true });
+    const q = new URLSearchParams(window.location.search);
+    if (q.has("example")) {
+      // `offline`: sent here from an upload the site couldn't check.
+      setState({ scans: [EXAMPLE_RESULT], isExample: true, offline: q.has("offline") });
       return;
     }
     const saved = loadScans();
