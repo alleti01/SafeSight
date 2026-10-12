@@ -99,6 +99,31 @@ export default function HomePage() {
       {/* Header: hidden over the film, slides in once it settles or you scroll. */}
       <Header fixed shown={filmNav || scrolled} />
 
+      {/* 1. Check a room, right here: the main thing the site does, first after the film. */}
+      <section id="check" className="scroll-mt-20 bg-[var(--ss-soft)]">
+        {/* The heading across the top, as in "What you get", and the card the full width under it. */}
+        <div className="flex w-full flex-col gap-10 px-5 py-20 sm:px-10 sm:py-28">
+          <div>
+            <Eyebrow>Check a room</Eyebrow>
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+              <H2>Start with the room they use most</H2>
+              <p className="m-0 max-w-[460px] shrink-0 text-[16px] leading-relaxed text-[var(--ss-ink-2)]">
+                Film it on your phone and you&apos;ll see what may be a problem,
+                and the easiest way to fix it.
+              </p>
+            </div>
+          </div>
+          <RoomCapture
+            room={check.room}
+            onRoom={check.setRoom}
+            files={check.files}
+            onFiles={check.pick}
+            error={check.error}
+            onSubmit={check.submit}
+          />
+        </div>
+      </section>
+
       {/* 2. The whole home, drawn: every kind of thing we look for, room by room. */}
       <section
         id="home"
@@ -181,30 +206,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 6. Check a room, right here. */}
-      <section id="check" className="scroll-mt-20 bg-[var(--ss-soft)]">
-        {/* The heading across the top, as in "What you get", and the card the full width under it. */}
-        <div className="flex w-full flex-col gap-10 px-5 py-20 sm:px-10 sm:py-28">
-          <div>
-            <Eyebrow>Check a room</Eyebrow>
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
-              <H2>Start with the room they use most</H2>
-              <p className="m-0 max-w-[460px] shrink-0 text-[16px] leading-relaxed text-[var(--ss-ink-2)]">
-                Film it on your phone and you&apos;ll see what may be a problem,
-                and the easiest way to fix it.
-              </p>
-            </div>
-          </div>
-          <RoomCapture
-            room={check.room}
-            onRoom={check.setRoom}
-            files={check.files}
-            onFiles={check.pick}
-            error={check.error}
-            onSubmit={check.submit}
-          />
-        </div>
-      </section>
 
       <SiteFooter />
     </div>
