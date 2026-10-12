@@ -1,4 +1,4 @@
-# The website, for Railway (railway.json at the repo root points here).
+# The website, for Railway (the service's Dockerfile path is app/Dockerfile).
 # Build context is the repo root. Railway passes NEXT_PUBLIC_BRAIN_URL in as a build
 # argument when it's set on the service; without it the site shows the example results.
 FROM node:22-slim AS build

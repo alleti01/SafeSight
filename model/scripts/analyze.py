@@ -379,13 +379,26 @@ def analyze_frame(an, im, room):
     return found
 
 
-MAX_PER_OBJECT = 2  # cards per (hazard type, object) in one job: the caregiver needs one clear example, not 10
+MAX_PER_OBJECT = 1  # cards per (hazard type, object) in one job: one clear example; its fix covers every one
+SURFACES = {"floor", "wall", "floor+wall"}
+
+
+def one_label_per_spot(hs):
+    """One frame, two object labels on the same spot (a mirror also read as a glass door): keep the surer one."""
+    hs = sorted(hs, key=lambda h: -h["confidence"])
+    kept = []
+    for h in hs:
+        if h["object"] not in SURFACES and any(
+                k["object"] != h["object"] and k["object"] not in SURFACES and iou(k["box"], h["box"]) > 0.5 for k in kept):
+            continue
+        kept.append(h)
+    return kept
 
 
 def merge(per_frame):
     """Same hazard seen in several frames of one video -> keep the clearest, most confident shot,
     then cap repeats of the same hazard on the same kind of object."""
-    allh = [dict(h, frame=k) for k, hs in enumerate(per_frame) for h in hs]
+    allh = [dict(h, frame=k) for k, hs in enumerate(per_frame) for h in one_label_per_spot(hs)]
     allh.sort(key=lambda h: (-SEV_RANK[h["severity"]], -h["confidence"]))
     kept = []
     for h in allh:
