@@ -1,4 +1,4 @@
-# The analysis service, for Railway (model/railway.json points here; build context is the repo root).
+# The analysis service, for Railway (the service's Dockerfile path is model/Dockerfile; build context is the repo root).
 # CPU only: Railway has no GPU. The weights aren't in the image; scripts/railway_start.sh
 # downloads them on first start (into a volume, if one is attached).
 FROM python:3.11-slim

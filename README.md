@@ -73,10 +73,10 @@ Measured on an Apple-silicon Mac: 5 photos in about 12 s, a 25-second video in a
 
 ### Railway
 
-Two services from this repo, both with the repo root as their root directory:
+Two services from this repo, both with the repo root as their root directory (settings in each service's Settings tab):
 
-- **Website**: uses `railway.json` at the root (builds `app/Dockerfile`). Set `NEXT_PUBLIC_BRAIN_URL` to the analysis service's public URL; without it the site shows the example results.
-- **Analysis service**: set its config file to `model/railway.json` (builds `model/Dockerfile`). Set `GITHUB_TOKEN` to a token that can read this repo, so it can download the weights from the release on first start, and attach a volume so they're kept between deploys. Railway has no GPU, so analysis runs on the CPU and is much slower than on a Mac or the H100.
+- **Website**: Dockerfile path `app/Dockerfile`, healthcheck `/`, watch `app/**`. Set `NEXT_PUBLIC_BRAIN_URL` to the analysis service's public URL; without it the site shows the example results.
+- **Analysis service**: Dockerfile path `model/Dockerfile`, healthcheck `/health` (timeout 1200 s: the first start downloads the weights), watch `model/**`. Set `GITHUB_TOKEN` to a token that can read this repo, so it can download the weights from the release on first start, and attach a volume at `/data` so they're kept between deploys. Railway has no GPU, so analysis runs on the CPU and is much slower than on a Mac or the H100.
 
 ## Credits
 
