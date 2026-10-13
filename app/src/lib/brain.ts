@@ -53,11 +53,25 @@ export async function analyze(
   }
 
   let job = await upload(form, onProgress);
+  let missed = 0; // check-ins in a row that didn't get through
   while (job.status === "queued" || job.status === "working") {
     onProgress({ step: job.step, done: job.done, total: job.total, preview: job.preview, found: job.found, queued: job.status === "queued" });
     await sleep(POLL_MS);
-    const res = await fetch(`${BRAIN_URL}/analyze/${job.job_id}`);
-    if (!res.ok) throw new Error(await errorText(res));
+    let res: Response;
+    try {
+      res = await fetch(`${BRAIN_URL}/analyze/${job.job_id}`);
+    } catch {
+      // A dropped connection or the service restarting: keep trying for about a minute.
+      if (++missed * POLL_MS > 60_000) throw new Error("We lost touch with the checker. Check your connection and try again.");
+      continue;
+    }
+    // The service restarted mid-check and doesn't know this job any more.
+    if (res.status === 404) throw new Error("The checker restarted while it was working on your room. Please check it again.");
+    if (!res.ok) {
+      if (res.status >= 500 && ++missed * POLL_MS <= 60_000) continue;
+      throw new Error(await errorText(res));
+    }
+    missed = 0;
     job = await res.json();
   }
   if (job.status === "failed") throw new Error(job.detail ?? "The check didn't finish. Try again in a moment.");
