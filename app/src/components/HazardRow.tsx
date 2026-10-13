@@ -169,7 +169,9 @@ export default function HazardRow({
       </div>
 
       <div className="flex min-w-0 flex-col gap-6 p-6 sm:p-8">
-        <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-[var(--ss-ink-3)]">
+        {/* The details wrap in their own column, so the button keeps its place top right. */}
+        <div className="flex items-start justify-between gap-3">
+          <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[13px] text-[var(--ss-ink-3)]">
           <span className="font-v5">{String(number).padStart(2, "0")}</span>
           <span aria-hidden="true">·</span>
           <span className="capitalize">{roomName(room)}</span>
@@ -184,13 +186,14 @@ export default function HazardRow({
               <span>{contrastTag}</span>
             </>
           )}
+          </p>
           <Link
             href={fixHref}
-            className="ml-auto inline-flex items-center rounded-full bg-[var(--ss-chip)] px-3 py-1 font-medium whitespace-nowrap text-[var(--ss-ink)] hover:bg-[var(--ss-soft)] max-sm:ml-0"
+            className="inline-flex shrink-0 items-center rounded-full bg-[var(--ss-chip)] px-3 py-1 text-[13px] font-medium whitespace-nowrap text-[var(--ss-ink)] hover:bg-[var(--ss-soft)]"
           >
             How to fix →
           </Link>
-        </p>
+        </div>
 
         <div className="flex flex-col gap-2.5">
           <h2 className="m-0 font-v5 text-[clamp(24px,2.3vw,30px)] leading-[1.15] font-medium tracking-[-0.02em]">{text.name}</h2>
@@ -219,7 +222,7 @@ export default function HazardRow({
           <Row term="Guide">
             {!guideRepeatsWhy && <span className="block">{guide.says}</span>}
             <a href={guide.source.url} target="_blank" rel="noreferrer" className="text-[var(--ss-ink-3)] underline underline-offset-4 hover:text-[var(--ss-ink)]">
-              {guide.source.name}{"\u00a0"}↗
+              {guide.source.name}{"\u00a0\u2197\uFE0E"}
             </a>
           </Row>
           <Row term="Fix">

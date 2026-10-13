@@ -235,7 +235,7 @@ export function SiteFooter() {
                   rel="noreferrer"
                   className={link}
                 >
-                  Alzheimer&apos;s Society guide{"\u00a0"}↗
+                  Alzheimer&apos;s Society guide{"\u00a0\u2197\uFE0E"}
                 </a>
               </li>
               <li className="text-[15px] text-[var(--ss-ink-3)]">

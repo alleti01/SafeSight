@@ -84,6 +84,29 @@ export default function FixPage() {
     ["In your video", hazard.time_s !== undefined ? `At ${clock(hazard.time_s)}` : "From a photo"],
   ];
 
+  const summary = (
+    <Card>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h1 className="m-0 font-v5 text-[clamp(28px,3vw,40px)] leading-[1.1] font-medium tracking-[-0.03em]">{text.name}</h1>
+        <SeverityPill severity={hazard.severity} />
+      </div>
+      <p className="m-0 mt-3 font-v5 text-[22px] font-medium tracking-[-0.01em]">
+        {cost[1] > 0 ? `Fix from ${money(cost)}` : "Free to fix"}
+      </p>
+      <p className="m-0 mt-1 flex flex-wrap gap-x-2 text-[13px] text-[var(--ss-ink-3)]">
+        <span className="capitalize">{roomName(room)}</span>
+        <span aria-hidden="true">·</span>
+        <span>{duration(plan.diyMinutes)} yourself</span>
+        {hazard.time_s !== undefined && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>{clock(hazard.time_s)} into your video</span>
+          </>
+        )}
+      </p>
+    </Card>
+  );
+
   return (
     <PageShell>
       <Panel className="mx-auto max-w-[1440px] !py-8 sm:!py-10">
@@ -108,18 +131,21 @@ export default function FixPage() {
           </div>
         </nav>
 
-        {/* 1. The photo, and the fixes as picture tiles that jump to each one. */}
+        <div className="mb-4 lg:hidden">{summary}</div>
+
+        {/* 1. The photo, and the fixes as picture tiles that jump to each one
+            (on a phone, one row to swipe through). */}
         <div className="grid gap-2 lg:h-[460px] lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
           <GalleryPhoto hazard={hazard} frame={frame} href={detailHref(jobId, hazardId)} />
-          <ul className="m-0 grid list-none grid-cols-2 gap-2 p-0 lg:grid-rows-2">
+          <ul className="m-0 flex snap-x list-none gap-2 overflow-x-auto p-0 [scrollbar-width:none] lg:grid lg:grid-cols-2 lg:grid-rows-2 lg:overflow-visible">
             {tiles.map((t) => (
-              <li key={t.href} className="min-h-0">
+              <li key={t.href} className="min-h-0 w-[42%] shrink-0 snap-start lg:w-auto">
                 <a
                   href={t.href}
-                  className="group relative flex h-full min-h-[150px] flex-col justify-between rounded-[16px] bg-[var(--ss-chip)] p-4 transition-colors hover:bg-[var(--ss-soft)]"
+                  className="group relative flex h-full min-h-[132px] flex-col justify-between gap-2 rounded-[16px] bg-[var(--ss-chip)] p-3 transition-colors hover:bg-[var(--ss-soft)] lg:min-h-[150px] lg:p-4"
                 >
                   <span className="self-end rounded-full bg-white/80 px-2.5 py-1 text-[12px] font-medium whitespace-nowrap">{t.price}</span>
-                  <FixIcon name={t.icon} size={64} className="mx-auto text-[var(--ss-ink)] transition-transform group-hover:scale-105" />
+                  <FixIcon name={t.icon} size={52} className="mx-auto lg:size-16 text-[var(--ss-ink)] transition-transform group-hover:scale-105" />
                   <span className="line-clamp-2 text-[13px] leading-snug font-medium">{t.label}</span>
                 </a>
               </li>
@@ -129,27 +155,8 @@ export default function FixPage() {
 
         <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="flex min-w-0 flex-col gap-4">
-            {/* 2. What it is, at a glance. */}
-            <Card>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <h1 className="m-0 font-v5 text-[clamp(28px,3vw,40px)] leading-[1.1] font-medium tracking-[-0.03em]">{text.name}</h1>
-                <SeverityPill severity={hazard.severity} />
-              </div>
-              <p className="m-0 mt-3 font-v5 text-[22px] font-medium tracking-[-0.01em]">
-                {cost[1] > 0 ? `Fix from ${money(cost)}` : "Free to fix"}
-              </p>
-              <p className="m-0 mt-1 flex flex-wrap gap-x-2 text-[13px] text-[var(--ss-ink-3)]">
-                <span className="capitalize">{roomName(room)}</span>
-                <span aria-hidden="true">·</span>
-                <span>{duration(plan.diyMinutes)} yourself</span>
-                {hazard.time_s !== undefined && (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span>{clock(hazard.time_s)} into your video</span>
-                  </>
-                )}
-              </p>
-            </Card>
+            {/* 2. What it is, at a glance (on a phone, above the photo). */}
+            <div className="max-lg:hidden">{summary}</div>
 
             {/* On a phone the side panel's free step comes here instead. */}
             {plan.free && (
@@ -157,6 +164,9 @@ export default function FixPage() {
                 <FreeStep text={plan.free} />
               </div>
             )}
+            <nav className="lg:hidden" aria-label="On this page">
+              <JumpLinks sections={sections} />
+            </nav>
 
             <Card id="why" title="Why it may be a problem">
               <p className="m-0 text-[15px] leading-relaxed">{text.why}</p>
@@ -164,7 +174,7 @@ export default function FixPage() {
                 {guide.says}{" "}
                 <a href={guide.source.url} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-[var(--ss-ink)]">
                   {guide.source.name}
-                  {" "}↗
+                  {"\u00a0\u2197\uFE0E"}
                 </a>
               </p>
             </Card>
@@ -200,7 +210,7 @@ export default function FixPage() {
                 <ul className="m-0 list-none p-0">
                   {plan.items.map((c) => (
                     <li key={c.name} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--ss-line)] py-3 first:border-t-0 first:pt-0">
-                      <span className="min-w-0 flex-1 text-[15px]">
+                      <span className="min-w-0 flex-1 text-[15px] max-sm:basis-full">
                         {c.name}
                         <span className="block text-[13px] text-[var(--ss-ink-3)]">{money([c.low, c.high])}</span>
                       </span>
@@ -258,15 +268,7 @@ export default function FixPage() {
                 {plan.free && <FreeStep text={plan.free} />}
                 <div className="flex flex-col gap-2">
                   <h2 className="m-0 text-[13px] font-medium text-[var(--ss-ink-3)]">On this page</h2>
-                  <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-                    {sections.map(([id, label]) => (
-                      <li key={id}>
-                        <a href={`#${id}`} className="inline-block rounded-full border border-[var(--ss-line)] px-3 py-1.5 text-[13px] hover:bg-[var(--ss-soft)]">
-                          {label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                  <JumpLinks sections={sections} />
                 </div>
                 <NextButton next={next} />
                 <Link href="/report" className="text-center text-[13px] text-[var(--ss-ink-2)] underline underline-offset-4 hover:text-[var(--ss-ink)]">
@@ -308,6 +310,20 @@ function Card({ id, title, children }: { id?: string; title?: string; children: 
       {title && <h2 className="m-0 mb-4 text-[15px] font-medium">{title}</h2>}
       {children}
     </section>
+  );
+}
+
+function JumpLinks({ sections }: { sections: string[][] }) {
+  return (
+    <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+      {sections.map(([id, label]) => (
+        <li key={id}>
+          <a href={`#${id}`} className="inline-block rounded-full border border-[var(--ss-line)] bg-white px-3 py-1.5 text-[13px] hover:bg-[var(--ss-soft)]">
+            {label}
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }
 

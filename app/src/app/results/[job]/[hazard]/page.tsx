@@ -179,7 +179,7 @@ export default function HazardDetailPage() {
                 className="text-[14px] text-[var(--ss-ink-2)] underline underline-offset-4 hover:text-[var(--ss-ink)]"
               >
                 {guideFor(hazard.type, room).source.name}
-                {"\u00a0"}↗
+                {"\u00a0\u2197\uFE0E"}
               </a>
             </BlurFade>
 
