@@ -95,6 +95,43 @@ export const HAZARD_TEXT: Record<HazardType, HazardText> = {
   },
 };
 
+/** A finding outside the bathroom flagged as a "fitting" is something like a
+ * towel on a rail: worded as that, not as a toilet. */
+export const outsideBathroomFitting = (h: { type: string; room?: string }) =>
+  h.type === "bathroom_fitting_blends_in" && !!h.room && h.room !== "bathroom";
+
+// In the bathroom, which fitting blends in, when the model says.
+const FITTING_TEXT: Record<string, HazardText> = {
+  toilet: {
+    name: "Toilet that blends in",
+    why: "A toilet the same color as the wall and floor can be hard to pick out, so it's harder to find and to sit down on safely.",
+    fix: "Fit a toilet seat in a strong, contrasting color.",
+  },
+  towel: {
+    name: "Towel that blends in",
+    why: "A towel the same color as the wall behind it can be hard to see and find.",
+    fix: "Use towels in one strong color that stands out from the wall.",
+  },
+  toilet_roll_holder: {
+    name: "Toilet roll holder that blends in",
+    why: "A roll holder the same color as the wall can be hard to find when it's needed.",
+    fix: "Swap it for a holder in a contrasting color.",
+  },
+};
+
+/** Text for one finding: its type's words, adjusted for what was seen and where. */
+export function findingText(h: { type: string; object?: string; room?: string }): HazardText {
+  if (h.type === "bathroom_fitting_blends_in" && !outsideBathroomFitting(h) && h.object && FITTING_TEXT[h.object])
+    return FITTING_TEXT[h.object];
+  if (outsideBathroomFitting(h))
+    return {
+      name: h.object === "towel" ? "Towel that blends in" : "Fitting that blends in",
+      why: "Something close in color to the wall or cupboard behind it can be hard to see and find.",
+      fix: "Use one in a color that stands out from what's behind it.",
+    };
+  return hazardText(h.type);
+}
+
 /** Text for any hazard type, including ones newer than this app. */
 export function hazardText(type: string): HazardText {
   return (

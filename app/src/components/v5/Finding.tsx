@@ -22,8 +22,8 @@ export interface Photo {
   height: number;
 }
 
-export const fixLine = (type: HazardType, object?: string) => {
-  const plan = planFor({ type, object });
+export const fixLine = (type: HazardType, object?: string, room?: string) => {
+  const plan = planFor({ type, object, room });
   const cost = materials(plan);
   if (cost[1] === 0) return "Free to fix";
   return `Fix from ${money(cost)}${plan?.free ? " · free step today" : ""}`;

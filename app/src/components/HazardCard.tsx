@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Frame, Hazard, Severity } from "@/lib/contract";
 import { assetUrl } from "@/lib/brain";
-import { GUIDE_URL, HAZARD_TEXT, SEVERITY_LABEL, roomName } from "@/lib/hazards";
+import { findingText, GUIDE_URL, SEVERITY_LABEL, roomName } from "@/lib/hazards";
 import { FindingTags, fixLine, Spotlight } from "@/components/v5/Finding";
 
 export const SEVERITY_TEXT_CLASS: Record<Severity, string> = {
@@ -27,8 +27,8 @@ export function SeverityPill({ severity, plain = false }: { severity: Severity; 
   );
 }
 
-export function HazardExplanation({ hazard }: { hazard: Hazard }) {
-  const text = HAZARD_TEXT[hazard.type];
+export function HazardExplanation({ hazard, room }: { hazard: Hazard; room?: string }) {
+  const text = findingText({ ...hazard, room });
   if (!text) return null;
   return (
     <>
@@ -50,7 +50,7 @@ export function GuideLink({ className = "" }: { className?: string }) {
 }
 
 // A finding from a scan, ready for the spotlight: the photo and outline
-// resolved against the brain (or the bundled example).
+// resolved against the brain.
 export const spotPhoto = (frame: Frame) => ({ src: assetUrl(frame.image_url), width: frame.width, height: frame.height });
 export const spotHazard = (hazard: Hazard) => ({ ...hazard, outline_url: hazard.outline_url ? assetUrl(hazard.outline_url) : "" });
 
@@ -69,8 +69,8 @@ export default function HazardCard({
   number: number;
   total: number;
 }) {
-  const text = HAZARD_TEXT[hazard.type];
-  const name = text?.name ?? hazard.type;
+  const text = findingText({ ...hazard, room });
+  const name = text.name;
   const photo = spotPhoto(frame);
 
   return (
@@ -100,7 +100,7 @@ export default function HazardCard({
 
       <div className="flex flex-wrap items-center gap-1.5">
         <FindingTags up hazard={hazard} photo={photo} />
-        <span className="ml-auto text-[13px] font-medium text-[var(--ss-ink-2)]">{fixLine(hazard.type, hazard.object)}</span>
+        <span className="ml-auto text-[13px] font-medium text-[var(--ss-ink-2)]">{fixLine(hazard.type, hazard.object, room)}</span>
       </div>
 
       {text && (

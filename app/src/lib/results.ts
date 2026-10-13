@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EXAMPLE_RESULT, USING_FAKE } from "./brain";
 import { SEVERITY_ORDER, type AnalyzeResult, type Frame, type Hazard } from "./contract";
 import { loadScans } from "./scans";
 
@@ -13,22 +12,12 @@ export interface GalleryItem {
   key: string;
 }
 
-/** This session's scans; or the bundled example when the address ends in
- * ?example, or when using fake results and nothing is saved. */
+/** This session's own checks (read in the browser, after the first render). */
 export function useScans() {
-  const [state, setState] = useState<{ scans: AnalyzeResult[]; isExample: boolean } | null>(null);
+  const [state, setState] = useState<{ scans: AnalyzeResult[] } | null>(null);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("example")) {
-      setState({ scans: [EXAMPLE_RESULT], isExample: true });
-      return;
-    }
-    const saved = loadScans();
-    setState(
-      saved.length === 0 && USING_FAKE
-        ? { scans: [EXAMPLE_RESULT], isExample: true }
-        : { scans: saved, isExample: false },
-    );
+    setState({ scans: loadScans() });
   }, []);
 
   return state;
@@ -92,6 +81,9 @@ export function listedItems(scans: AnalyzeResult[], { sureOnly = false } = {}): 
   return sureOnly ? sure : [...sure, ...items.filter((i) => !isSure(i.hazard))];
 }
 
-export function detailHref(jobId: string, hazardId: string, example = false) {
-  return `/results/${encodeURIComponent(jobId)}/${encodeURIComponent(hazardId)}${example ? "?example" : ""}`;
+export function detailHref(jobId: string, hazardId: string) {
+  return `/results/${encodeURIComponent(jobId)}/${encodeURIComponent(hazardId)}`;
 }
+
+/** The step-by-step fix for one finding. */
+export const fixHref = (jobId: string, hazardId: string) => `${detailHref(jobId, hazardId)}/fix`;

@@ -11,9 +11,9 @@ import {
 import { FindingTags, fixLine, Spotlight } from "@/components/v5/Finding";
 import { BlurFade } from "@/components/ui/blur-fade";
 import PageShell, { BLACK_PILL, Panel, PILL } from "@/components/v4/PageShell";
-import { HAZARD_TEXT, roomName } from "@/lib/hazards";
+import { findingText, roomName } from "@/lib/hazards";
 import { guideFor } from "@/lib/guide";
-import { detailHref, isSure, listedItems, useScans } from "@/lib/results";
+import { detailHref, fixHref, isSure, listedItems, useScans } from "@/lib/results";
 
 export default function HazardDetailPage() {
   const params = useParams<{ job: string; hazard: string }>();
@@ -67,7 +67,7 @@ export default function HazardDetailPage() {
     : `Less sure · ${index - sureCount + 1} of ${items.length - sureCount}`;
   const prev = items[index - 1];
   const next = items[index + 1];
-  const name = HAZARD_TEXT[hazard.type]?.name ?? hazard.type;
+  const name = findingText({ ...hazard, room }).name;
   const photo = spotPhoto(frame);
 
   return (
@@ -78,7 +78,7 @@ export default function HazardDetailPage() {
           aria-label="Hazards"
         >
           <Link
-            href={state.isExample ? "/results?example" : "/results"}
+            href="/results"
             className={PILL}
           >
             ← All results
@@ -89,9 +89,7 @@ export default function HazardDetailPage() {
               <Link
                 href={detailHref(
                   prev.jobId,
-                  prev.hazard.hazard_id,
-                  state.isExample,
-                )}
+                  prev.hazard.hazard_id)}
                 className={PILL}
               >
                 Previous
@@ -101,9 +99,7 @@ export default function HazardDetailPage() {
               <Link
                 href={detailHref(
                   next.jobId,
-                  next.hazard.hazard_id,
-                  state.isExample,
-                )}
+                  next.hazard.hazard_id)}
                 className={PILL}
               >
                 Next
@@ -132,10 +128,10 @@ export default function HazardDetailPage() {
                 hazard: h,
                 label: (
                   <Link
-                    href={detailHref(jobId, h.hazard_id, state.isExample)}
+                    href={detailHref(jobId, h.hazard_id)}
                     className="absolute top-2 left-2 max-w-[calc(100%-16px)] truncate rounded-[6px] bg-white/90 px-2 py-0.5 text-[12px] font-medium whitespace-nowrap text-[var(--ss-ink)] hover:underline"
                   >
-                    {HAZARD_TEXT[h.type]?.name ?? h.type}
+                    {findingText({ ...h, room }).name}
                   </Link>
                 ),
               }))}
@@ -168,18 +164,21 @@ export default function HazardDetailPage() {
                   sure={isSure(hazard)}
                 />
               </div>
-              <HazardExplanation hazard={hazard} />
+              <HazardExplanation hazard={hazard} room={room} />
               <p className="m-0 text-[14px] font-medium text-[var(--ss-ink-2)]">
-                {fixLine(hazard.type, hazard.object)}
+                {fixLine(hazard.type, hazard.object, room)}
               </p>
+              <Link href={fixHref(jobId, hazardId)} className={`${BLACK_PILL} self-start`}>
+                How to fix it →
+              </Link>
               {/* The source this kind of finding comes from, as on the results page. */}
               <a
-                href={guideFor(hazard.type).source.url}
+                href={guideFor(hazard.type, room).source.url}
                 target="_blank"
                 rel="noreferrer"
                 className="text-[14px] text-[var(--ss-ink-2)] underline underline-offset-4 hover:text-[var(--ss-ink)]"
               >
-                {guideFor(hazard.type).source.name}
+                {guideFor(hazard.type, room).source.name}
                 {"\u00a0"}↗
               </a>
             </BlurFade>
@@ -193,10 +192,10 @@ export default function HazardDetailPage() {
                   {others.map((h) => (
                     <li key={h.hazard_id}>
                       <Link
-                        href={detailHref(jobId, h.hazard_id, state.isExample)}
+                        href={detailHref(jobId, h.hazard_id)}
                         className={`${PILL} !py-1.5 text-[13px]`}
                       >
-                        {HAZARD_TEXT[h.type]?.name ?? h.type}
+                        {findingText({ ...h, room }).name}
                         <SeverityPill severity={h.severity} />
                       </Link>
                     </li>

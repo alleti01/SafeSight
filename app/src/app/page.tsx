@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import AnalysisProgress from "@/components/AnalysisProgress";
 import VideoHero from "@/components/hero/VideoHero";
 import type { SitePhoto } from "@/components/landing/ModelStrip";
@@ -155,7 +154,7 @@ export default function HomePage() {
         <HowItWorks room={room} />
       </section>
 
-      {/* 4. What you get: the heading and the room's findings filling one screen, then the full fix plan. */}
+      {/* 4. What you get: the heading and the room's findings filling one screen. */}
       {room && (
         <section
           id="fixes"
@@ -182,15 +181,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="w-full px-5 pt-10 pb-20 sm:px-10 sm:pb-28">
-            <Link
-              href="/report?example"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[var(--ss-accent)] px-6 py-3.5 text-[15px] font-medium text-white hover:brightness-110"
-            >
-              See a full example fix plan (PDF){" "}
-              <span aria-hidden="true">→</span>
-            </Link>
-          </div>
         </section>
       )}
 

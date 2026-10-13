@@ -88,7 +88,7 @@ export const GUIDE: Record<HazardType, GuideNote> = {
     source: SOURCES.NIA,
   },
   door_blends_in: {
-    says: "Doors that contrast with the walls around them are easier to find, especially the toilet door. A sign at eye level helps too.",
+    says: "Doors that contrast with the walls around them are easier to find. A sign at eye level showing what's behind the door helps too.",
     source: SOURCES.DSDC,
   },
   window_reflection: {
@@ -110,7 +110,9 @@ export const GUIDE: Record<HazardType, GuideNote> = {
 };
 
 /** The guide note for any hazard type, including ones newer than this app. */
-export function guideFor(type: string): GuideNote {
+export function guideFor(type: string, room?: string): GuideNote {
+  if (type === "bathroom_fitting_blends_in" && room && room !== "bathroom")
+    return { says: "Things that stand out in color from the wall behind them are easier to see and find.", source: SOURCES.ASH };
   return (GUIDE as Record<string, GuideNote>)[type] ?? { says: "See the guide for ideas that may help.", source: SOURCES.ASH };
 }
 

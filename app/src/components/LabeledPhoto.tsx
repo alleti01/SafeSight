@@ -54,7 +54,7 @@ export default function LabeledPhoto({
   const { width: w, height: h } = frame;
   const url = src ?? assetUrl(frame.image_url);
   const lit = (hz: Hazard) => focusId === undefined || hz.hazard_id === focusId;
-  // Outlines come from the backend unless the photo is a bundled example.
+  // Outlines come from the brain unless the photo is bundled with the site.
   const outlineUrl = (hz: Hazard) => (!hz.outline_url ? "" : src ? hz.outline_url : assetUrl(hz.outline_url));
   const outlines = useOutlines(hazards.map(outlineUrl));
   const show = inView || quiet;

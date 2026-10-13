@@ -9,7 +9,7 @@ import { assetUrl } from "@/lib/brain";
 import { materials, money, planFor } from "@/lib/costs";
 import type { Frame, Hazard } from "@/lib/contract";
 import { guideFor, LRV_BAD, LRV_POOR } from "@/lib/guide";
-import { hazardText, SEVERITY_LABEL, roomName } from "@/lib/hazards";
+import { findingText, SEVERITY_LABEL, roomName } from "@/lib/hazards";
 import { plainContrast, type MeasuredHazard } from "@/lib/measure";
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -97,6 +97,7 @@ export default function HazardRow({
   frame,
   room,
   href,
+  fixHref,
   number,
   onDismiss,
 }: {
@@ -104,11 +105,13 @@ export default function HazardRow({
   frame: Frame;
   room: string;
   href: string;
+  /** The step-by-step fix, with other ways to fix it. */
+  fixHref: string;
   number: number;
   onDismiss?: () => void;
 }) {
-  const text = hazardText(hazard.type);
-  const guide = guideFor(hazard.type);
+  const text = findingText({ ...hazard, room });
+  const guide = guideFor(hazard.type, room);
   const photo = spotPhoto(frame);
   // How much of the clip the object is actually in view. Short sightings show
   // the photo first (a box that's mostly hidden isn't worth watching); very
@@ -125,7 +128,7 @@ export default function HazardRow({
   const contrast = plainContrast(hazard);
   const lrv = lrvSentence(hazard);
   const evidence = evidenceSentence(hazard);
-  const plan = planFor(hazard) as ReturnType<typeof planFor> | undefined;
+  const plan = planFor({ ...hazard, room }) as ReturnType<typeof planFor> | undefined;
   const label = [objectLabel(hazard.object) || text.name, `${Math.round(hazard.confidence * 100)}%`].join(" · ");
 
   const guideRepeatsWhy = similar(guide.says, text.why);
@@ -181,6 +184,12 @@ export default function HazardRow({
               <span>{contrastTag}</span>
             </>
           )}
+          <Link
+            href={fixHref}
+            className="ml-auto inline-flex items-center rounded-full bg-[var(--ss-chip)] px-3 py-1 font-medium whitespace-nowrap text-[var(--ss-ink)] hover:bg-[var(--ss-soft)] max-sm:ml-0"
+          >
+            How to fix →
+          </Link>
         </p>
 
         <div className="flex flex-col gap-2.5">
@@ -219,6 +228,18 @@ export default function HazardRow({
               {plan ? `${plan.fix}.` : text.fix}
               {cost && cost[1] > 0 && <span className="whitespace-nowrap text-[var(--ss-ink-3)]"> From {money(cost)}.</span>}
             </span>
+            {plan && plan.alternatives.length > 0 && (
+              <span className="mt-2 block text-[var(--ss-ink-2)]">
+                <span className="text-[var(--ss-ink-3)]">Or: </span>
+                {plan.alternatives.map((a, i) => (
+                  <span key={a.fix}>
+                    {i > 0 && <span className="text-[var(--ss-ink-3)]"> · </span>}
+                    {a.fix.charAt(0).toLowerCase() + a.fix.slice(1)}{" "}
+                    <span className="whitespace-nowrap text-[var(--ss-ink-3)]">({a.high === 0 ? "free" : money([a.low, a.high])})</span>
+                  </span>
+                ))}
+              </span>
+            )}
           </Row>
         </dl>
 

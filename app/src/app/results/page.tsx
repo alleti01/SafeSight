@@ -11,6 +11,7 @@ import type { Severity } from "@/lib/contract";
 import { SEVERITY_LABEL, roomName } from "@/lib/hazards";
 import {
   detailHref,
+  fixHref,
   galleryItems,
   isSure,
   useScans,
@@ -22,7 +23,7 @@ export default function ResultsPage() {
   const removal = useRemoved();
   if (state === null) return null;
 
-  const { scans, isExample } = state;
+  const { scans } = state;
   const all = galleryItems(scans).filter(
     (i) => !removal.removed.includes(i.key),
   );
@@ -50,7 +51,7 @@ export default function ResultsPage() {
       <Panel>
         <header className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-end">
           <div className="flex flex-col items-start gap-5">
-            <Eyebrow>{isExample ? "Example results" : "Your results"}</Eyebrow>
+            <Eyebrow>Your results</Eyebrow>
             <h1 className="m-0 text-[clamp(36px,4.6vw,64px)] leading-[1.08] font-v5 font-medium tracking-[-0.03em]">
               <span className="capitalize">
                 {rooms.length > 0 ? rooms.map(roomName).join(", ") : "Results"}
@@ -79,11 +80,10 @@ export default function ResultsPage() {
               <p className="m-0 text-[15px] leading-relaxed text-[var(--ss-ink-2)]">
                 {checkedLine}. Every home and person is different, so treat
                 these as suggestions, not a safety inspection.
-                {isExample && " Check a room to see your own."}
               </p>
               {items.length > 0 && (
                 <Link
-                  href={isExample ? "/report?example" : "/report"}
+                  href="/report"
                   className={BLACK_PILL}
                 >
                   Fix plan and costs (PDF) →
@@ -113,7 +113,6 @@ export default function ResultsPage() {
         <Gallery
           items={items}
           unsure={unsure}
-          isExample={isExample}
           removal={removal}
         />
       )}
@@ -202,12 +201,10 @@ function useRemoved() {
 function Gallery({
   items,
   unsure,
-  isExample,
   removal,
 }: {
   items: GalleryItem[];
   unsure: GalleryItem[];
-  isExample: boolean;
   removal: ReturnType<typeof useRemoved>;
 }) {
   const [filters, setFilters] = useState<Filters>({
@@ -340,7 +337,8 @@ function Gallery({
                 frame={item.frame}
                 room={item.room}
                 number={items.indexOf(item) + 1}
-                href={detailHref(item.jobId, item.hazard.hazard_id, isExample)}
+                href={detailHref(item.jobId, item.hazard.hazard_id)}
+                fixHref={fixHref(item.jobId, item.hazard.hazard_id)}
                 onDismiss={() => removal.remove(item.key)}
               />
             </BlurFade>
@@ -383,9 +381,8 @@ function Gallery({
                   number={items.length + unsure.indexOf(item) + 1}
                   href={detailHref(
                     item.jobId,
-                    item.hazard.hazard_id,
-                    isExample,
-                  )}
+                    item.hazard.hazard_id)}
+                  fixHref={fixHref(item.jobId, item.hazard.hazard_id)}
                   onDismiss={() => removal.remove(item.key)}
                 />
               ))}

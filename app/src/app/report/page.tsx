@@ -14,7 +14,7 @@ import {
   planTotals,
   shopLinks,
 } from "@/lib/costs";
-import { HAZARD_TEXT, SEVERITY_LABEL, roomName } from "@/lib/hazards";
+import { findingText, SEVERITY_LABEL, roomName } from "@/lib/hazards";
 import { listedItems, useScans, type GalleryItem } from "@/lib/results";
 
 // The fix plan, laid out like a plan rather than a stack of cards (after home
@@ -48,13 +48,11 @@ export default function ReportPage() {
     }),
   );
   const rooms = [...new Set(state.scans.map((s) => s.room))];
-  const totals = planTotals(items.map((i) => i.hazard));
+  const totals = planTotals(items.map((i) => ({ ...i.hazard, room: i.room })));
   // Frames from a video carry their time in it; photos don't.
   const frames = state.scans.flatMap((sc) => sc.frames);
   const video = frames.some((f) => f.time_s !== undefined);
-  const source = state.isExample
-    ? "these photos"
-    : video
+  const source = video
       ? "your video"
       : frames.length === 1
         ? "your photo"
@@ -81,7 +79,7 @@ export default function ReportPage() {
     );
   }
 
-  const plan = (i: Numbered) => planFor(i.hazard);
+  const plan = (i: Numbered) => planFor({ ...i.hazard, room: i.room });
   const free = items.filter((i) => plan(i).free);
   const weekend = items.filter(
     (i) => !plan(i).free || !same(plan(i).free!, plan(i).fix),
@@ -113,10 +111,9 @@ export default function ReportPage() {
           <article className="mx-auto flex max-w-[860px] flex-col gap-10 print:max-w-none print:gap-5 print:text-[9.5pt]">
             <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
               <Link
-                href={state.isExample ? "/#fixes" : "/results"}
+                href="/results"
                 className={PILL}
               >
-                {/* The example plan goes back to "What you get" on the home page; a real one to its results. */}
                 ← Back
               </Link>
               <button
@@ -170,7 +167,7 @@ export default function ReportPage() {
                   >
                     <Num n={i.n} />
                     <span className="font-medium">
-                      {HAZARD_TEXT[i.hazard.type]?.name ?? i.hazard.type}
+                      {findingText({ ...i.hazard, room: i.room }).name}
                     </span>
                     {rooms.length > 1 && (
                       <span className="text-[var(--ss-ink-3)] capitalize">
@@ -379,7 +376,7 @@ function Row({
   children: React.ReactNode;
 }) {
   const { manyRooms } = useContext(PlanContext);
-  const text = HAZARD_TEXT[item.hazard.type];
+  const text = findingText({ ...item.hazard, room: item.room });
   return (
     <li className="flex gap-4 border-b border-[var(--ss-line)] py-3 break-inside-avoid print:gap-3 print:py-1.5">
       {photo ? (

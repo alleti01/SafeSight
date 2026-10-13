@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { liveScan, USING_FAKE, type LiveHazard } from "@/lib/brain";
 import { ROOMS } from "@/lib/contract";
 import { HAZARD_TEXT, roomName } from "@/lib/hazards";
@@ -670,13 +669,7 @@ export default function RoomCapture({
           role="alert"
           className="m-0 rounded-[14px] bg-[#fdecea] px-4 py-3 text-[14px] text-[#9b2c24]"
         >
-          {error}{" "}
-          <Link
-            href="/results?example"
-            className="underline underline-offset-2"
-          >
-            See example results
-          </Link>
+          {error}
         </p>
       )}
 

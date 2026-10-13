@@ -1,19 +1,12 @@
 import type { AnalyzeResult, HazardType, Severity } from "./contract";
-import fakeResults from "./fake-results.json";
 
-// The one setting that points the app at the brain. Leave it unset to use the
-// fake results in fake-results.json (a copy of shared/contract.json).
+// The one setting that points the app at the brain (the analysis service).
+// Without it the site can't check rooms, and says so.
 export const BRAIN_URL = (process.env.NEXT_PUBLIC_BRAIN_URL ?? "").replace(/\/$/, "");
 export const USING_FAKE = BRAIN_URL === "";
 
-export const EXAMPLE_RESULT = fakeResults as AnalyzeResult;
-
-// The bundled example's photos and outlines ship with the app, so the example
-// works even when the backend is down.
-const BUNDLED = /^\/(frames|outlines)\//;
-
 export function assetUrl(path: string): string {
-  if (/^https?:\/\//.test(path) || USING_FAKE || BUNDLED.test(path)) return path;
+  if (/^https?:\/\//.test(path) || USING_FAKE) return path;
   return BRAIN_URL + path;
 }
 
@@ -51,7 +44,7 @@ export async function analyze(
   files: File[],
   onProgress: (p: Progress) => void = () => {},
 ): Promise<AnalyzeResult> {
-  if (USING_FAKE) return fakeAnalyze(room, files, onProgress);
+  if (USING_FAKE) throw new Error("This site isn't connected to the analysis service right now, so it can't check rooms. Try again later.");
 
   const form = new FormData();
   form.append("room", room);
@@ -89,17 +82,6 @@ function upload(form: FormData, onProgress: (p: Progress) => void): Promise<JobS
   });
 }
 
-async function fakeAnalyze(room: string, files: File[], onProgress: (p: Progress) => void) {
-  const n = Math.max(files.length, 3);
-  for (const step of STEPS) {
-    for (let i = 0; i < n; i++) {
-      onProgress({ step, done: i, total: n });
-      await sleep(120);
-    }
-  }
-  return { ...EXAMPLE_RESULT, job_id: Math.random().toString(36).slice(2, 10), room };
-}
-
 /** Something the live camera found in one frame. `box` is fractions of the frame: left, top, right, bottom. */
 export interface LiveHazard {
   type: HazardType;
@@ -110,8 +92,8 @@ export interface LiveHazard {
 
 /**
  * One frame from the live camera: what may be a problem in it right now, to
- * mark on the video while filming. Nothing comes back without a brain (the
- * example mode), and a failed frame just counts as nothing found.
+ * mark on the video while filming. Nothing comes back without a brain,
+ * and a failed frame just counts as nothing found.
  */
 export async function liveScan(room: string, frame: Blob, signal?: AbortSignal): Promise<LiveHazard[]> {
   if (USING_FAKE) return [];

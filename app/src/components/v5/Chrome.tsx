@@ -171,12 +171,6 @@ export function Header({
   );
 }
 
-// The links in the footer, besides the sections in NAV.
-const FOOTER_SEE = [
-  { href: "/results?example", label: "Example results" },
-  { href: "/report?example", label: "Example fix plan" },
-];
-
 /**
  * The site footer: what SafeSight is and a way to start, the site's links
  * in columns, and a bottom line with the credits (photo credits open in place).
@@ -188,7 +182,7 @@ export function SiteFooter() {
   const link = "text-[15px] text-[var(--ss-ink-2)] hover:text-[var(--ss-ink)]";
   return (
     <footer className="border-t border-[var(--ss-line)] bg-[var(--ss-sheet)] print:hidden">
-      <div className="grid w-full grid-cols-2 gap-x-6 gap-y-10 px-5 pt-14 pb-10 sm:px-10 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
+      <div className="grid w-full grid-cols-2 gap-x-6 gap-y-10 px-5 pt-14 pb-10 sm:px-10 lg:grid-cols-[minmax(0,1.6fr)_repeat(2,minmax(0,1fr))]">
         <div className="col-span-2 flex flex-col items-start gap-4 lg:col-span-1">
           <Link
             href="/"
@@ -227,18 +221,6 @@ export function SiteFooter() {
                   <a href={n.href} className={link}>
                     {n.label}
                   </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className={heading}>See an example</p>
-            <ul className={column}>
-              {FOOTER_SEE.map((n) => (
-                <li key={n.href}>
-                  <Link href={n.href} className={link}>
-                    {n.label}
-                  </Link>
                 </li>
               ))}
             </ul>

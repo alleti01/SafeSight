@@ -92,3 +92,37 @@ describe("planFor", () => {
     expect(cable).toBe(20);
   });
 });
+
+describe("planFor with a room", () => {
+  it("gives a towel outside the bathroom a towel fix, not a toilet seat", () => {
+    const p = planFor({ type: "bathroom_fitting_blends_in", object: "towel", room: "kitchen" });
+    expect(p.fix).toMatch(/towel/i);
+    expect(JSON.stringify(p)).not.toMatch(/toilet/i);
+  });
+  it("keeps the toilet seat fix in the bathroom", () => {
+    expect(planFor({ type: "bathroom_fitting_blends_in", object: "toilet", room: "bathroom" })).toBe(FIX_PLANS.bathroom_fitting_blends_in);
+  });
+});
+
+describe("detailed fixes", () => {
+  const plans = [
+    ...Object.values(FIX_PLANS),
+    ...["cable", "floor_clutter"].map((object) => planFor({ type: "floor_clutter", object })),
+    ...["towel", "toilet_roll_holder"].map((object) => planFor({ type: "bathroom_fitting_blends_in", object, room: "bathroom" })),
+    planFor({ type: "bathroom_fitting_blends_in", object: "towel", room: "kitchen" }),
+  ];
+  it("give every fix steps and at least one alternative with a sane price", () => {
+    for (const plan of plans) {
+      expect(plan.steps.length).toBeGreaterThanOrEqual(2);
+      expect(plan.alternatives.length).toBeGreaterThanOrEqual(1);
+      for (const alt of plan.alternatives) {
+        expect(alt.high).toBeGreaterThanOrEqual(alt.low);
+        if (alt.high > 0) expect(alt.shop).toBeTruthy();
+      }
+    }
+  });
+  it("gives a bathroom towel a towel fix and a roll holder a holder fix", () => {
+    expect(planFor({ type: "bathroom_fitting_blends_in", object: "towel", room: "bathroom" }).fix).toMatch(/towels/i);
+    expect(planFor({ type: "bathroom_fitting_blends_in", object: "toilet_roll_holder", room: "bathroom" }).fix).toMatch(/holder/i);
+  });
+});

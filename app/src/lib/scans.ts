@@ -17,6 +17,6 @@ export function saveScan(result: AnalyzeResult) {
     const others = loadScans().filter((s) => s.room !== result.room);
     sessionStorage.setItem(KEY, JSON.stringify([...others, result]));
   } catch {
-    // Storage blocked; the results page falls back to the example.
+    // Storage blocked; the results page shows its empty state.
   }
 }
